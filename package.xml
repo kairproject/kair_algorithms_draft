@@ -1,0 +1,9 @@
+<package format="2">
+  <name>kair_algorithms</name>
+  <version>0.0.0</version>
+  <description>
+  This package provides RL algorithms.
+  </description>
+  <maintainer email="todo@todo.todo">TODO</maintainer>
+  <license>TODO</license>
+</package>

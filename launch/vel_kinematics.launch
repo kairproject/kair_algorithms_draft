@@ -1,0 +1,13 @@
+<launch>
+
+    <!--Sawyer URDF-->
+    <arg name="sawyer_urdf" value="robot_description"/>
+    <param name="$(arg sawyer_urdf)" textfile="$(find ddpg)/urdf/sawyer.urdf"/>
+
+    <!--Target pose publishing node-->
+    <!--node name="basic_ui" pkg="telehaptics" type="basic_ui.py" output="screen"/-->
+
+    <!--Bare velocity controller node -->
+    <node name="velocity_control" pkg="ddpg" type="sawyer_velocity_control.py" output="screen"/>
+
+</launch>
