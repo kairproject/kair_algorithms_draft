@@ -1,3 +1,5 @@
+before_script: cd script
+
 dist: xenial
 
 language: python
