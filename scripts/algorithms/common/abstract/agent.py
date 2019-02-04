@@ -43,9 +43,6 @@ class AbstractAgent(ABC):
         else:
             self.args.max_episode_steps = env._max_episode_steps
 
-        self.state_dim = env.observation_space.shape[0]
-        self.action_dim = env.action_space.shape[0]
-
         # for logging
         self.sha = (
             subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])[:-1]
