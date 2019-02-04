@@ -1,3 +1,5 @@
+pre-commit
+
 # formatting
 black
 isort
