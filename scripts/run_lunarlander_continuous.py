@@ -52,39 +52,8 @@ parser.set_defaults(log=False)
 args = parser.parse_args()
 
 # import the agent
-if args.algo == "reinforce":
-    from algorithms.reinforce.agent import Agent
-elif args.algo == "a2c":
-    from algorithms.a2c.agent import Agent
-elif args.algo == "dpg":
-    from algorithms.dpg.agent import Agent
-elif args.algo == "ddpg":
+if args.algo == "ddpg":
     from algorithms.ddpg.agent import Agent
-elif args.algo == "trpo":
-    from algorithms.trpo.agent import Agent
-elif args.algo == "ppo":
-    from algorithms.ppo.agent import Agent
-elif args.algo == "td3":
-    from algorithms.td3.agent import Agent
-elif args.algo == "sac":
-    from algorithms.sac.agent import Agent
-# with bc
-elif args.algo == "bc-ddpg":
-    from algorithms.bc.ddpg_agent import Agent
-# with per
-elif args.algo == "per-ddpg":
-    from algorithms.per.ddpg_agent import Agent
-elif args.algo == "per-td3":
-    from algorithms.per.td3_agent import Agent
-elif args.algo == "per-sac":
-    from algorithms.per.sac_agent import Agent
-# from demo
-elif args.algo == "ddpgfd":
-    from algorithms.fd.ddpg_agent import Agent
-elif args.algo == "td3fd":
-    from algorithms.fd.td3_agent import Agent
-elif args.algo == "sacfd":
-    from algorithms.fd.sac_agent import Agent
 
 
 def main():
