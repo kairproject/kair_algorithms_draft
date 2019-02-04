@@ -9,8 +9,6 @@ import math
 import pickle
 
 import numpy as np
-import torch
-import torch.nn as nn
 
 
 # taken and modified from https://github.com/ikostrikov/pytorch-trpo

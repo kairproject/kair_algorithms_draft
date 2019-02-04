@@ -5,10 +5,8 @@
 - Contact: kh.kim@medipixel.io
 """
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Normal
 
 
 class MLP(nn.Module):
