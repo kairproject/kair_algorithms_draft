@@ -1,14 +1,16 @@
-before_script: cd scripts
-
 dist: xenial
 
 language: python
 python:
     - "3.6"
 
+before_install: cd scripts
+
 install:
      - make dep
      - make dev
+
+before_script: cd scripts
 
 script:
     # run static analysis and format check
