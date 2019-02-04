@@ -5,32 +5,16 @@
 - Contact: curt.park@medipixel.io
 """
 
-import math
-import pickle
-
-import numpy as np
+import torch
+import torch.nn as nn
 
 
-# taken and modified from https://github.com/ikostrikov/pytorch-trpo
-def normal_log_density(x, mean, log_std, std):
-    var = std.pow(2)
-    log_density = -(x - mean).pow(2) / (2 * var) - 0.5 * math.log(2 * math.pi) - log_std
-    return log_density.sum(-1, keepdim=True)
+def identity(x: torch.Tensor) -> torch.Tensor:
+    """Return input without any change."""
+    return x
 
 
-def soft_update(local, target, tau):
+def soft_update(local: nn.Module, target: nn.Module, tau: float):
     """Soft-update: target = tau*local + (1-tau)*target."""
     for t_param, l_param in zip(target.parameters(), local.parameters()):
         t_param.data.copy_(tau * l_param.data + (1.0 - tau) * t_param.data)
-
-
-def fetch_desired_states_from_demo(demo_path):
-    """Return desired goal states from demonstration data."""
-    with open(demo_path, "rb") as f:
-        demo = pickle.load(f)
-
-    demo = np.array(demo)
-    goal_indices = np.where(demo[:, 4])[0]
-    goal_states = demo[goal_indices][:, 0]
-
-    return goal_states, goal_indices
