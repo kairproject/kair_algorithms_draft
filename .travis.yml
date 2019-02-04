@@ -1,4 +1,4 @@
-before_script: cd script
+before_script: cd scripts
 
 dist: xenial
 
