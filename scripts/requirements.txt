@@ -1,0 +1,7 @@
+gym
+numpy
+scipy
+torch == 0.4.1
+GitPython
+typing
+wandb
