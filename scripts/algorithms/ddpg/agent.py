@@ -221,7 +221,7 @@ class Agent(AbstractAgent):
         """Train the agent."""
         # logger
         if self.args.log:
-            wandb.init("project1")
+            wandb.init(project="project1")
             wandb.config.update(hyper_params)
             wandb.watch([self.actor, self.critic], log="parameters")
 
