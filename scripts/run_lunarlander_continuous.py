@@ -19,13 +19,19 @@ parser.add_argument(
 )
 parser.add_argument("--algo", type=str, default="ddpg", help="choose an algorithm")
 parser.add_argument(
-    "--test", dest="test", action="store_true", help="test mode (no training)"
+    "--test", action="store_true", help="test mode (no training)"
 )
 parser.add_argument(
-    "--load-from", type=str, help="load the saved model and optimizer at the beginning"
+    "--load-from",
+    type=str,
+    default=None,
+    help="load the saved model and optimizer at the beginning"
 )
 parser.add_argument(
-    "--off-render", dest="render", action="store_false", help="turn off rendering"
+    "--off-render",
+    dest="render",
+    action="store_false",
+    help="turn off rendering"
 )
 parser.add_argument(
     "--render-after",
@@ -33,17 +39,14 @@ parser.add_argument(
     default=0,
     help="start rendering after the input number of episode",
 )
-parser.add_argument("--log", dest="log", action="store_true", help="turn on logging")
+parser.add_argument("--log", action="store_true", help="turn on logging")
 parser.add_argument("--save-period", type=int, default=100, help="save model period")
 parser.add_argument("--episode-num", type=int, default=1500, help="total episode num")
 parser.add_argument(
     "--max-episode-steps", type=int, default=300, help="max episode step"
 )
-
-parser.set_defaults(test=False)
-parser.set_defaults(load_from=None)
 parser.set_defaults(render=True)
-parser.set_defaults(log=False)
+
 args = parser.parse_args()
 
 
