@@ -4,8 +4,6 @@ language: python
 python:
     - "3.6"
 
-before_install: cd scripts
-
 install:
      - make dep
      - make dev
