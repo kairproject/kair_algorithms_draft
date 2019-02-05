@@ -1,0 +1,13 @@
+dist: xenial
+
+language: python
+python:
+    - "3.6"
+
+install:
+    - make dep
+    - make dev
+
+script:
+    # run static analysis and format check
+    - make test

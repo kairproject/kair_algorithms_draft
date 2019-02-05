@@ -1,0 +1,16 @@
+pre-commit
+
+# formatting
+black
+isort
+
+# testing
+flake8==3.6.0
+flake8-bugbear
+flake8-docstrings
+pytest>=4.0.0
+pytest-flake8
+pytest-cov
+
+# generating requirements
+pipreqs

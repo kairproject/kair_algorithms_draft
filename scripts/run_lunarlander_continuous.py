@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+"""Train or test baselines on LunarLanderContinuous-v2.
+
+- Author: Curt Park
+- Contact: curt.park@medipixel.io
+"""
+
+import argparse
+import importlib
+
+import gym
+import numpy as np
+import torch
+
+# configurations
+parser = argparse.ArgumentParser(description="Pytorch RL baselines")
+parser.add_argument(
+    "--seed", type=int, default=777, help="random seed for reproducibility"
+)
+parser.add_argument("--algo", type=str, default="ddpg", help="choose an algorithm")
+parser.add_argument(
+    "--load-from",
+    type=str,
+    default=None,
+    help="load the saved model and optimizer at the beginning",
+)
+parser.add_argument("--episode-num", type=int, default=1500, help="total episode num")
+parser.add_argument(
+    "--max-episode-steps", type=int, default=300, help="max episode step"
+)
+parser.add_argument(
+    "--off-render", dest="render", action="store_false", help="turn off rendering"
+)
+parser.add_argument(
+    "--render-after",
+    type=int,
+    default=0,
+    help="start rendering after the input number of episode",
+)
+parser.add_argument("--save-period", type=int, default=100, help="save model period")
+parser.add_argument("--log", action="store_true", help="turn on logging")
+parser.add_argument("--test", action="store_true", help="test mode (no training)")
+parser.set_defaults(render=True)
+
+args = parser.parse_args()
+
+
+def main():
+    """Main."""
+    # env initialization
+    env = gym.make("LunarLanderContinuous-v2")
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+
+    # set a random seed
+    env.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
+    # run
+    module_path = "examples.lunarlander_continuous_v2." + args.algo
+    example = importlib.import_module(module_path)
+    example.run(env, args, state_dim, action_dim)
+
+
+if __name__ == "__main__":
+    main()

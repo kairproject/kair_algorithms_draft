@@ -1,0 +1,5 @@
+gym
+numpy
+torch==1.0.0
+typing
+wandb
