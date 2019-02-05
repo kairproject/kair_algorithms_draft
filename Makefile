@@ -6,8 +6,8 @@ format:
 	isort -y
 
 dev:
-	pip install -r requirements-dev.txt
+	pip install -r scripts/requirements-dev.txt
 	pre-commit install
 
 dep:
-	pip install -r requirements.txt
+	pip install -r scripts/requirements.txt
