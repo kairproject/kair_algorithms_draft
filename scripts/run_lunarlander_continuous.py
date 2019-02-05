@@ -28,7 +28,6 @@ parser.add_argument("--episode-num", type=int, default=1500, help="total episode
 parser.add_argument(
     "--max-episode-steps", type=int, default=300, help="max episode step"
 )
-parser.add_argument("--save-period", type=int, default=100, help="save model period")
 parser.add_argument(
     "--off-render", dest="render", action="store_false", help="turn off rendering"
 )
@@ -38,6 +37,7 @@ parser.add_argument(
     default=0,
     help="start rendering after the input number of episode",
 )
+parser.add_argument("--save-period", type=int, default=100, help="save model period")
 parser.add_argument("--log", action="store_true", help="turn on logging")
 parser.add_argument("--test", action="store_true", help="test mode (no training)")
 parser.set_defaults(render=True)
