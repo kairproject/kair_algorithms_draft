@@ -4,10 +4,14 @@ language: python
 python:
     - "3.6"
 
+before_install:
+    - cd scripts
+
 install:
-     - make dep
-     - make dev
+    - make dep
+    - make dev
 
 script:
     # run static analysis and format check
+    - cd ..
     - make test
