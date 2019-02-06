@@ -67,11 +67,10 @@ class Agent(AbstractAgent):
         AbstractAgent.__init__(self, env, args)
         self.actor, self.actor_target, self.critic1, self.critic1_target, \
             self.critic2, self.critic2_target = models
-        self.actor_optimizer, self.critic1_optimizer, \
-            self.critic2_optimizer = optims
+        self.actor_optimizer, self.critic1_optimizer, self.critic2_optimizer = optims
         self.hyper_params = hyper_params
-        self.curr_state = np.zeros((1, ))
         self.exploration_noise, self.target_policy_noise = noises
+        self.curr_state = np.zeros((1,))
         self.n_steps_total = 0
 
         # load the optimizer and model parameters
@@ -88,8 +87,9 @@ class Agent(AbstractAgent):
         self.curr_state = state
 
         state = torch.FloatTensor(state).to(device)
+        noise = torch.FloatTensor(self.exploration_noise.sample()).to(device)
         selected_action = self.actor(state)
-        selected_action += torch.FloatTensor(self.exploration_noise.sample()).to(device)
+        selected_action += noise
 
         return selected_action
 
@@ -118,15 +118,20 @@ class Agent(AbstractAgent):
         clipped_noise = torch.clamp(
             noise,
             -self.hyper_params["TARGET_POLICY_NOISE_CLIP"],
-            self.hyper_params["TARGET_POLICY_NOISE_CLIP"]
+            self.hyper_params["TARGET_POLICY_NOISE_CLIP"],
         )
-        next_actions = self.actor_target(next_states) + clipped_noise
+        next_actions = (self.actor_target(next_states) + clipped_noise).clamp(-1.0, 1.0)
 
-        target_values1 = self.critic1_target(torch.cat((next_states, next_actions), dim=-1))
-        target_values2 = self.critic2_target(torch.cat((next_states, next_actions), dim=-1))
+        target_values1 = self.critic1_target(
+            torch.cat((next_states, next_actions), dim=-1)
+        )
+        target_values2 = self.critic2_target(
+            torch.cat((next_states, next_actions), dim=-1)
+        )
         target_values = torch.min(target_values1, target_values2)
-        target_values = rewards + (self.hyper_params["GAMMA"] * target_values *
-            masks).detach()
+        target_values = (
+            rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
+        )
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
@@ -143,7 +148,7 @@ class Agent(AbstractAgent):
 
         self.n_steps_total += 1
 
-        if self.n_steps_total + 1 // self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
+        if self.n_steps_total // self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
             actions = self.actor(states)
             actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean()
@@ -229,6 +234,7 @@ class Agent(AbstractAgent):
             done = False
             score = 0
             loss_episode = list()
+            steps = 0
 
             while not done:
                 if self.args.render and i_episode >= self.args.render_after:
@@ -236,6 +242,7 @@ class Agent(AbstractAgent):
 
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
+                steps += 1
 
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
                     experiences = self.memory.sample()
@@ -249,6 +256,7 @@ class Agent(AbstractAgent):
             if loss_episode:
                 avg_loss = np.vstack(loss_episode).mean(axis=0)
                 self.write_log(i_episode, avg_loss, score)
+            print("steps_per_episode", steps)
 
             if i_episode % self.args.save_period == 0:
                 self.save_params(i_episode)
