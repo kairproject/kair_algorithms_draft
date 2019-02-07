@@ -241,7 +241,6 @@ class Agent(AbstractAgent):
 
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
-                steps += 1
 
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
                     experiences = self.memory.sample()
