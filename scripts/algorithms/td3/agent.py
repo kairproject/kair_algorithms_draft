@@ -89,7 +89,7 @@ class Agent(AbstractAgent):
         state = torch.FloatTensor(state).to(device)
         noise = torch.FloatTensor(self.exploration_noise.sample()).to(device)
         selected_action = self.actor(state)
-        selected_action += noise
+        selected_action = (selected_action + noise).clamp(-1.0, 1.0)
 
         return selected_action
 
@@ -234,7 +234,6 @@ class Agent(AbstractAgent):
             done = False
             score = 0
             loss_episode = list()
-            steps = 0
 
             while not done:
                 if self.args.render and i_episode >= self.args.render_after:
@@ -256,7 +255,6 @@ class Agent(AbstractAgent):
             if loss_episode:
                 avg_loss = np.vstack(loss_episode).mean(axis=0)
                 self.write_log(i_episode, avg_loss, score)
-            print("steps_per_episode", steps)
 
             if i_episode % self.args.save_period == 0:
                 self.save_params(i_episode)
