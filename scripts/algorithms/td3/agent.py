@@ -110,7 +110,6 @@ class Agent(AbstractAgent):
 
         return next_state, reward, done
 
-
     def update_model(
         self,
         experiences: Tuple[
@@ -153,7 +152,7 @@ class Agent(AbstractAgent):
         critic2_loss.backward()
         self.critic2_optim.step()
 
-        if self.episode_steps // self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
+        if self.episode_steps % self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
             actions = self.actor(states)
             actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean()
@@ -167,7 +166,6 @@ class Agent(AbstractAgent):
             common_utils.soft_update(self.critic1, self.critic1_target, tau)
             common_utils.soft_update(self.critic2, self.critic2_target, tau)
         else:
-#            actor_loss = torch.zeros(1)
             actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean().detach()
 
         return actor_loss.data, critic1_loss.data, critic2_loss.data
@@ -211,14 +209,15 @@ class Agent(AbstractAgent):
         total_loss = loss.sum()
 
         print(
-            "[INFO] episode %d total score: %d, total loss: %f\n"
+            "[INFO] total_steps: %d episode: %d total score: %d, total loss: %f\n"
             "actor_loss: %.3f critic_loss: %.3f\n"
-            % (i, score, total_loss, loss[0], loss[1])  # actor loss  # critic loss
+            % (self.total_steps, i, score, total_loss, loss[0], loss[1])
         )
 
         if self.args.log:
             wandb.log(
                 {
+                    "total_steps": self.total_steps,
                     "score": score,
                     "total loss": total_loss,
                     "actor loss": loss[0],
@@ -251,20 +250,13 @@ class Agent(AbstractAgent):
                 self.total_steps += 1
                 self.episode_steps += 1
 
-#                if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
-#                    experiences = self.memory.sample()
-#                    loss = self.update_model(experiences)
-#                    loss_episode.append(loss)  # for logging
+                if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
+                    experiences = self.memory.sample()
+                    loss = self.update_model(experiences)
+                    loss_episode.append(loss)  # for logging
 
                 state = next_state
                 score += reward
-
-            for _ in range(self.episode_steps):
-                experiences = self.memory.sample()
-                loss = self.update_model(experiences)
-                loss_episode.append(loss)  # for logging
-
-            print(f"Total T: {self.total_steps}, Episode T:{self.episode_steps}")
 
             # logging
             if loss_episode:
