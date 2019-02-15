@@ -21,15 +21,16 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 hyper_params = {
     "GAMMA": 0.99,
     "TAU": 5e-3,
-    "BUFFER_SIZE": int(1e5),
-    "BATCH_SIZE": 128,
+    "BUFFER_SIZE": int(1e6),
+    "BATCH_SIZE": 100,
     "LR_ACTOR": 1e-3,
     "LR_CRITIC": 1e-3,
     "WEIGHT_DECAY": 0.0,
-    "EXPLORATION_NOISE": 0.2,
+    "EXPLORATION_NOISE": 0.1,
     "TARGET_POLICY_NOISE": 0.2,
     "TARGET_POLICY_NOISE_CLIP": 0.5,
     "POLICY_UPDATE_FREQ": 2,
+    "INITIAL_RANDOM_ACTIONS": 0,
 }
 
 
@@ -88,13 +89,13 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
         weight_decay=hyper_params["WEIGHT_DECAY"],
     )
 
-    critic_optim1 = optim.Adam(
+    critic1_optim = optim.Adam(
         critic1.parameters(),
         lr=hyper_params["LR_CRITIC"],
         weight_decay=hyper_params["WEIGHT_DECAY"],
     )
 
-    critic_optim2 = optim.Adam(
+    critic2_optim = optim.Adam(
         critic2.parameters(),
         lr=hyper_params["LR_CRITIC"],
         weight_decay=hyper_params["WEIGHT_DECAY"],
@@ -110,7 +111,7 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
 
     # make tuples to create an agent
     models = (actor, actor_target, critic1, critic1_target, critic2, critic2_target)
-    optims = (actor_optim, critic_optim1, critic_optim2)
+    optims = (actor_optim, critic1_optim, critic2_optim)
     noises = (exploration_noise, target_policy_noise)
 
     # create an agent

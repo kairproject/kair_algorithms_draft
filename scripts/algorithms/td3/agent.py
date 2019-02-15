@@ -37,9 +37,9 @@ class Agent(AbstractAgent):
         critic2 (nn.Module): critic2 model to predict state values
         critic1_target (nn.Module): target critic1 model to predict state values
         critic2_target (nn.Module): target critic2 model to predict state values
-        actor_optimizer (Optimizer): optimizer for training actor
-        critic1_optimizer (Optimizer): optimizer for training critic1
-        critic2_optimizer (Optimizer): optimizer for training critic2
+        actor_optim (Optimizer): optimizer for training actor
+        critic1_optim (Optimizer): optimizer for training critic1
+        critic2_optim (Optimizer): optimizer for training critic2
         curr_state (np.ndarray): temporary storage of the current state
 
     """
@@ -67,11 +67,12 @@ class Agent(AbstractAgent):
         AbstractAgent.__init__(self, env, args)
         self.actor, self.actor_target, self.critic1, self.critic1_target, \
             self.critic2, self.critic2_target = models
-        self.actor_optimizer, self.critic1_optimizer, self.critic2_optimizer = optims
+        self.actor_optim, self.critic1_optim, self.critic2_optim = optims
         self.hyper_params = hyper_params
         self.exploration_noise, self.target_policy_noise = noises
         self.curr_state = np.zeros((1,))
-        self.n_steps_total = 0
+        self.total_steps = 0
+        self.episode_steps = 0
 
         # load the optimizer and model parameters
         if args.load_from is not None and os.path.exists(args.load_from):
@@ -82,25 +83,33 @@ class Agent(AbstractAgent):
             hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"], self.args.seed
         )
 
-    def select_action(self, state: np.ndarray) -> torch.Tensor:
+    def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input space."""
+        # initial training step, try random action for exploration
+        random_action_count = self.hyper_params["INITIAL_RANDOM_ACTIONS"]
+
         self.curr_state = state
 
-        state = torch.FloatTensor(state).to(device)
-        noise = torch.FloatTensor(self.exploration_noise.sample()).to(device)
-        selected_action = self.actor(state)
-        selected_action = (selected_action + noise).clamp(-1.0, 1.0)
+        if self.total_steps < random_action_count and not self.args.test:
+            return self.env.action_space.sample()
 
-        return selected_action
+        state = torch.FloatTensor(state).to(device)
+        selected_action = self.actor(state)
+
+        if not self.args.test:
+            noise = torch.FloatTensor(self.exploration_noise.sample()).to(device)
+            selected_action = (selected_action + noise).clamp(-1.0, 1.0)
+
+        return selected_action.detach().cpu().numpy()
 
     def step(self, action: torch.Tensor) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
-        action = action.detach().cpu().numpy()
         next_state, reward, done, _ = self.env.step(action)
 
         self.memory.add(self.curr_state, action, reward, next_state, done)
 
         return next_state, reward, done
+
 
     def update_model(
         self,
@@ -129,32 +138,28 @@ class Agent(AbstractAgent):
             torch.cat((next_states, next_actions), dim=-1)
         )
         target_values = torch.min(target_values1, target_values2)
-        target_values = (
-            rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
-        )
+        target_values = rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
         critic1_loss = F.mse_loss(values1, target_values)
-        self.critic1_optimizer.zero_grad()
+        self.critic1_optim.zero_grad()
         critic1_loss.backward()
-        self.critic1_optimizer.step()
+        self.critic1_optim.step()
 
         values2 = self.critic2(torch.cat((states, actions), dim=-1))
         critic2_loss = F.mse_loss(values2, target_values)
-        self.critic2_optimizer.zero_grad()
+        self.critic2_optim.zero_grad()
         critic2_loss.backward()
-        self.critic2_optimizer.step()
+        self.critic2_optim.step()
 
-        self.n_steps_total += 1
-
-        if self.n_steps_total // self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
+        if self.episode_steps // self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
             actions = self.actor(states)
             actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean()
-            self.actor_optimizer.zero_grad()
+            self.actor_optim.zero_grad()
             actor_loss.backward()
-            self.actor_optimizer.step()
+            self.actor_optim.step()
 
             # update target networks
             tau = self.hyper_params["TAU"]
@@ -162,7 +167,8 @@ class Agent(AbstractAgent):
             common_utils.soft_update(self.critic1, self.critic1_target, tau)
             common_utils.soft_update(self.critic2, self.critic2_target, tau)
         else:
-            actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean()
+#            actor_loss = torch.zeros(1)
+            actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean().detach()
 
         return actor_loss.data, critic1_loss.data, critic2_loss.data
 
@@ -179,9 +185,9 @@ class Agent(AbstractAgent):
         self.critic2.load_state_dict(params["critic2_state_dict"])
         self.critic1_target.load_state_dict(params["critic1_target_state_dict"])
         self.critic2_target.load_state_dict(params["critic2_target_state_dict"])
-        self.actor_optimizer.load_state_dict(params["actor_optim_state_dict"])
-        self.critic1_optimizer.load_state_dict(params["critic1_optim_state_dict"])
-        self.critic2_optimizer.load_state_dict(params["critic2_optim_state_dict"])
+        self.actor_optim.load_state_dict(params["actor_optim_state_dict"])
+        self.critic1_optim.load_state_dict(params["critic1_optim_state_dict"])
+        self.critic2_optim.load_state_dict(params["critic2_optim_state_dict"])
         print("[INFO] loaded the model and optimizer from", path)
 
     def save_params(self, n_episode: int):
@@ -193,9 +199,9 @@ class Agent(AbstractAgent):
             "critic2_state_dict": self.critic2.state_dict(),
             "critic1_target_state_dict": self.critic1_target.state_dict(),
             "critic2_target_state_dict": self.critic2_target.state_dict(),
-            "actor_optim_state_dict": self.actor_optimizer.state_dict(),
-            "critic1_optim_state_dict": self.critic1_optimizer.state_dict(),
-            "critic2_optim_state_dict": self.critic2_optimizer.state_dict(),
+            "actor_optim_state_dict": self.actor_optim.state_dict(),
+            "critic1_optim_state_dict": self.critic1_optim.state_dict(),
+            "critic2_optim_state_dict": self.critic2_optim.state_dict(),
         }
 
         AbstractAgent.save_params(self, self.args.algo, params, n_episode)
@@ -234,6 +240,7 @@ class Agent(AbstractAgent):
             done = False
             score = 0
             loss_episode = list()
+            self.episode_steps = 0
 
             while not done:
                 if self.args.render and i_episode >= self.args.render_after:
@@ -241,14 +248,23 @@ class Agent(AbstractAgent):
 
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
+                self.total_steps += 1
+                self.episode_steps += 1
 
-                if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
-                    experiences = self.memory.sample()
-                    loss = self.update_model(experiences)
-                    loss_episode.append(loss)  # for logging
+#                if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
+#                    experiences = self.memory.sample()
+#                    loss = self.update_model(experiences)
+#                    loss_episode.append(loss)  # for logging
 
                 state = next_state
                 score += reward
+
+            for _ in range(self.episode_steps):
+                experiences = self.memory.sample()
+                loss = self.update_model(experiences)
+                loss_episode.append(loss)  # for logging
+
+            print(f"Total T: {self.total_steps}, Episode T:{self.episode_steps}")
 
             # logging
             if loss_episode:
