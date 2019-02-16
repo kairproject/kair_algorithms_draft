@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
-"""DDPG agent for episodic tasks in OpenAI Gym.
+"""DDPG agent with PER for episodic tasks in OpenAI Gym.
 
-- Author: Curt Park
-- Contact: curt.park@medipixel.io
+- Author: Kh Kim
+- Contact: kh.kim@medipixel.io
 - Paper: https://arxiv.org/pdf/1509.02971.pdf
+         https://arxiv.org/pdf/1511.05952.pdf
 """
 
 import argparse
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 import gym
 import numpy as np
 import torch
-import torch.nn.functional as F
 import wandb
 
 import algorithms.common.helper_functions as common_utils
 from algorithms.common.abstract.agent import AbstractAgent
-from algorithms.common.buffer.replay_buffer import ReplayBuffer
+from algorithms.common.buffer.priortized_replay_buffer import PrioritizedReplayBuffer
 from algorithms.common.noise import OUNoise
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,15 +28,16 @@ class Agent(AbstractAgent):
     """ActorCritic interacting with environment.
 
     Attributes:
-        memory (ReplayBuffer): replay memory
+        memory (PrioritizedReplayBuffer): replay memory
         noise (OUNoise): random noise for exploration
-        hyper_params (dict): hyper-parameters
         actor (nn.Module): actor model to select actions
         actor_target (nn.Module): target actor model to select actions
         critic (nn.Module): critic model to predict state values
         critic_target (nn.Module): target critic model to predict state values
         actor_optimizer (Optimizer): optimizer for training actor
         critic_optimizer (Optimizer): optimizer for training critic
+        hyper_params (dict): hyper-parameters
+        beta (float): beta parameter for prioritized replay buffer
         curr_state (np.ndarray): temporary storage of the current state
 
     """
@@ -74,8 +75,11 @@ class Agent(AbstractAgent):
             self.load_params(args.load_from)
 
         # replay memory
-        self.memory = ReplayBuffer(
-            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"]
+        self.beta = self.hyper_params["PER_BETA"]
+        self.memory = PrioritizedReplayBuffer(
+            self.hyper_params["BUFFER_SIZE"],
+            self.hyper_params["BATCH_SIZE"],
+            alpha=self.hyper_params["PER_ALPHA"],
         )
 
     def select_action(self, state: np.ndarray) -> torch.Tensor:
@@ -83,11 +87,12 @@ class Agent(AbstractAgent):
         self.curr_state = state
 
         state = torch.FloatTensor(state).to(device)
-        selected_action = self.actor(state)
 
         if not self.args.test:
+            selected_action = self.actor(state)
             selected_action += torch.FloatTensor(self.noise.sample()).to(device)
-            selected_action = torch.clamp(selected_action, -1.0, 1.0)
+
+        selected_action = torch.clamp(selected_action, -1.0, 1.0)
 
         return selected_action
 
@@ -103,11 +108,18 @@ class Agent(AbstractAgent):
     def update_model(
         self,
         experiences: Tuple[
-            torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            List[int],
         ],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Train the model after each episode."""
-        states, actions, rewards, next_states, dones = experiences
+
+        states, actions, rewards, next_states, dones, weights, indexes = experiences
 
         # G_t   = r + gamma * v(s_{t+1})  if state != Terminal
         #       = r                       otherwise
@@ -115,18 +127,19 @@ class Agent(AbstractAgent):
         next_actions = self.actor_target(next_states)
         next_values = self.critic_target(torch.cat((next_states, next_actions), dim=-1))
         curr_returns = rewards + self.hyper_params["GAMMA"] * next_values * masks
-        curr_returns = curr_returns.to(device)
+        curr_returns = curr_returns.to(device).detach()
 
         # train critic
         values = self.critic(torch.cat((states, actions), dim=-1))
-        critic_loss = F.mse_loss(values, curr_returns)
+        critic_loss = torch.mean((values - curr_returns).pow(2) * weights)
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
 
         # train actor
         actions = self.actor(states)
-        actor_loss = -self.critic(torch.cat((states, actions), dim=-1)).mean()
+        actor_loss_element_wise = -self.critic(torch.cat((states, actions), dim=-1))
+        actor_loss = torch.mean(actor_loss_element_wise * weights)
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
@@ -135,6 +148,13 @@ class Agent(AbstractAgent):
         tau = self.hyper_params["TAU"]
         common_utils.soft_update(self.actor, self.actor_target, tau)
         common_utils.soft_update(self.critic, self.critic_target, tau)
+
+        # update priorities in PER
+        new_priorities = (values - curr_returns).pow(2)
+        new_priorities = (
+            new_priorities.data.cpu().numpy() + self.hyper_params["PER_EPS"]
+        )
+        self.memory.update_priorities(indexes, new_priorities)
 
         return actor_loss.data, critic_loss.data
 
@@ -208,12 +228,16 @@ class Agent(AbstractAgent):
                 next_state, reward, done = self.step(action)
 
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
-                    experiences = self.memory.sample()
+                    experiences = self.memory.sample(self.beta)
                     loss = self.update_model(experiences)
                     loss_episode.append(loss)  # for logging
 
                 state = next_state
                 score += reward
+
+            # increase beta
+            fraction = min(float(i_episode) / self.args.max_episode_steps, 1.0)
+            self.beta = self.beta + fraction * (1.0 - self.beta)
 
             # logging
             if loss_episode:

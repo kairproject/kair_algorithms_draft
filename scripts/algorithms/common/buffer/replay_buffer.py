@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """Replay buffer for baselines."""
 
-import random
-from collections import deque
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -18,55 +17,70 @@ class ReplayBuffer:
     ddpg-pendulum/ddpg_agent.py
 
     Attributes:
-        buffer (deque): deque of replay buffer
+        buffer (list): list of replay buffer
         batch_size (int): size of a batched sampled from replay buffer for training
 
     """
 
-    def __init__(self, buffer_size, batch_size, seed, demo=None):
+    def __init__(self, buffer_size: int, batch_size: int, demo: list = None):
         """Initialize a ReplayBuffer object.
 
         Args:
             buffer_size (int): size of replay buffer for experience
             batch_size (int): size of a batched sampled from replay buffer for training
-            seed (int): random seed
-            demo (deque) : demonstration deque
+            demo (list) : demonstration list
 
         """
-        self.buffer = deque(maxlen=buffer_size) if not demo else demo
-
+        self.buffer = list() if not demo else demo
+        self.buffer_size = buffer_size
         self.batch_size = batch_size
-        random.seed(seed)
+        self.idx = 0
 
-    def add(self, state, action, reward, next_state, done):
+    def add(
+        self,
+        state: np.ndarray,
+        action: np.ndarray,
+        reward: np.float64,
+        next_state: np.ndarray,
+        done: bool,
+    ):
         """Add a new experience to memory."""
-        self.buffer.append((state, action, reward, next_state, done))
+        data = (state, action, reward, next_state, done)
 
-    def extend(self, transitions):
+        if len(self.buffer) == self.buffer_size:
+            self.buffer[self.idx] = data
+            self.idx = (self.idx + 1) % self.buffer_size
+        else:
+            self.buffer.append(data)
+
+    def extend(self, transitions: list):
         """Add experiences to memory."""
         self.buffer.extend(transitions)
 
-    def sample(self):
+    def sample(
+        self
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Randomly sample a batch of experiences from memory."""
-        experiences = random.sample(self.buffer, k=self.batch_size)
+        idxs = np.random.randint(0, len(self.buffer), size=self.batch_size)
 
         states, actions, rewards, next_states, dones = [], [], [], [], []
 
-        for e in experiences:
-            states.append(np.expand_dims(e[0], axis=0))
-            actions.append(e[1])
-            rewards.append(e[2])
-            next_states.append(np.expand_dims(e[3], axis=0))
-            dones.append(e[4])
+        for i in idxs:
+            s, a, r, n_s, d = self.buffer[i]
+            states.append(np.array(s, copy=False))
+            actions.append(np.array(a, copy=False))
+            rewards.append(np.array(r, copy=False))
+            next_states.append(np.array(n_s, copy=False))
+            dones.append(np.array(float(d), copy=False))
 
-        states = torch.from_numpy(np.vstack(states)).float().to(device)
-        actions = torch.from_numpy(np.vstack(actions)).float().to(device)
-        rewards = torch.from_numpy(np.vstack(rewards)).float().to(device)
-        next_states = torch.from_numpy(np.vstack(next_states)).float().to(device)
-        dones = torch.from_numpy(np.vstack(dones).astype(np.uint8)).float().to(device)
+        states = torch.FloatTensor(np.array(states)).to(device)
+        actions = torch.FloatTensor(np.array(actions)).to(device)
+        rewards = torch.FloatTensor(np.array(rewards).reshape(-1, 1)).to(device)
+        next_states = torch.FloatTensor(np.array(next_states)).to(device)
+        dones = torch.FloatTensor(np.array(dones).reshape(-1, 1)).to(device)
 
-        return (states, actions, rewards, next_states, dones)
+        return states, actions, rewards, next_states, dones
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the current size of internal memory."""
         return len(self.buffer)

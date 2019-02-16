@@ -246,3 +246,12 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+# Wandb
+wandb
+
+# save file
+save
+
+# pycharm
+.idea

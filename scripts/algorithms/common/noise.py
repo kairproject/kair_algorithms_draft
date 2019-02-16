@@ -15,15 +15,13 @@ class OUNoise:
     ddpg-pendulum/ddpg_agent.py
     """
 
-    def __init__(self, size, seed, mu=0.0, theta=0.15, sigma=0.2):
+    def __init__(self, size, mu=0.0, theta=0.15, sigma=0.2):
         """Initialize parameters and noise process."""
         self.state = np.float64(0.0)
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
         self.reset()
-
-        random.seed(seed)
 
     def reset(self):
         """Reset the internal state (= noise) to mean (mu)."""
