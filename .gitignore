@@ -248,10 +248,10 @@ qtcreator-*
 CATKIN_IGNORE
 
 # Wandb
-wandb/
+wandb
 
 # save file
-scripts/save/
+save
 
 # pycharm
-.idea/
+.idea
