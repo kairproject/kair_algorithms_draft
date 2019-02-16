@@ -1,5 +1,5 @@
 gym
 numpy
-torch==1.0.0
+torch==0.4.1
 typing
 wandb
