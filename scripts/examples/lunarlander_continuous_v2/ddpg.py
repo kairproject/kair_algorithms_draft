@@ -28,6 +28,7 @@ hyper_params = {
     "OU_NOISE_THETA": 0.0,
     "OU_NOISE_SIGMA": 0.0,
     "WEIGHT_DECAY": 1e-6,
+    "INITIAL_RANDOM_ACTION": 10000,
 }
 
 
@@ -41,31 +42,36 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
         action_dim (int): dimension of actions
 
     """
-    hidden_sizes = [256, 256]
+    hidden_sizes_actor = [256, 256]
+    hidden_sizes_critic = [256, 256]
 
     # create actor
     actor = MLP(
         input_size=state_dim,
         output_size=action_dim,
-        hidden_sizes=hidden_sizes,
+        hidden_sizes=hidden_sizes_actor,
         output_activation=torch.tanh,
     ).to(device)
 
     actor_target = MLP(
         input_size=state_dim,
         output_size=action_dim,
-        hidden_sizes=hidden_sizes,
+        hidden_sizes=hidden_sizes_actor,
         output_activation=torch.tanh,
     ).to(device)
     actor_target.load_state_dict(actor.state_dict())
 
     # create critic
     critic = MLP(
-        input_size=state_dim + action_dim, output_size=1, hidden_sizes=hidden_sizes
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
 
     critic_target = MLP(
-        input_size=state_dim + action_dim, output_size=1, hidden_sizes=hidden_sizes
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
     critic_target.load_state_dict(critic.state_dict())
 
@@ -85,7 +91,6 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
     # noise
     noise = OUNoise(
         action_dim,
-        args.seed,
         theta=hyper_params["OU_NOISE_THETA"],
         sigma=hyper_params["OU_NOISE_SIGMA"],
     )
