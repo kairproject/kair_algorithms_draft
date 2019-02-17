@@ -22,7 +22,7 @@ class ReplayBuffer:
 
     """
 
-    def __init__(self, buffer_size: int, batch_size: int, demo: list = None):
+    def __init__(self, buffer_size: int, batch_size: int):
         """Initialize a ReplayBuffer object.
 
         Args:
@@ -31,7 +31,7 @@ class ReplayBuffer:
             demo (list) : demonstration list
 
         """
-        self.buffer = list() if not demo else demo
+        self.buffer: list = list()
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self.idx = 0
@@ -55,13 +55,14 @@ class ReplayBuffer:
 
     def extend(self, transitions: list):
         """Add experiences to memory."""
-        self.buffer.extend(transitions)
+        for transition in transitions:
+            self.add(*transition)
 
     def sample(
         self
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Randomly sample a batch of experiences from memory."""
-        idxs = np.random.randint(0, len(self.buffer), size=self.batch_size)
+        idxs = np.random.choice(len(self.buffer), size=self.batch_size, replace=False)
 
         states, actions, rewards, next_states, dones = [], [], [], [], []
 
