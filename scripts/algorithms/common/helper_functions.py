@@ -12,6 +12,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def identity(x: torch.Tensor) -> torch.Tensor:
     """Return input without any change."""

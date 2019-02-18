@@ -28,7 +28,6 @@ class ReplayBuffer:
         Args:
             buffer_size (int): size of replay buffer for experience
             batch_size (int): size of a batched sampled from replay buffer for training
-            demo (list) : demonstration list
 
         """
         self.buffer: list = list()
