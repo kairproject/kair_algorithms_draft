@@ -41,7 +41,7 @@ class ReplayBuffer:
         action: np.ndarray,
         reward: np.float64,
         next_state: np.ndarray,
-        done: float,
+        done: bool,
     ):
         """Add a new experience to memory."""
         data = (state, action, reward, next_state, done)
