@@ -15,21 +15,23 @@ class GaussianNoise:
 
     def __init__(
         self,
+        action_dim: int,
         min_sigma: float = 1.0,
         max_sigma: float = 1.0,
         decay_period: int = 1000000,
     ):
         """Initialization."""
-        self.max_sigma = max_sigma
+        self.action_dim = action_dim
         self.min_sigma = min_sigma
+        self.max_sigma = max_sigma
         self.decay_period = decay_period
 
-    def sample(self, action_size: int, t: int = 0) -> float:
+    def sample(self, t: int = 0) -> float:
         """Get an action with gaussian noise."""
         sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(
             1.0, t / self.decay_period
         )
-        return np.random.normal(0, sigma, size=action_size)
+        return np.random.normal(0, sigma, size=self.action_dim)
 
 
 class OUNoise:
@@ -62,17 +64,3 @@ class OUNoise:
         )
         self.state = x + dx
         return self.state
-
-
-class GaussianNoise:
-    """Gaussian Noise process."""
-
-    def __init__(self, size, seed, mu=0.0, sigma=0.2):
-        """Initialize parameters and noise process."""
-        self.size = size
-        self.mu = mu
-        self.sigma = sigma
-
-    def sample(self):
-        """Sample Gaussian noise."""
-        return np.random.normal(self.mu, self.sigma, size=self.size)

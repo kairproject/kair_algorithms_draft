@@ -67,7 +67,7 @@ class Agent(AbstractAgent):
         AbstractAgent.__init__(self, env, args)
         self.actor, self.actor_target, self.critic1, self.critic1_target, \
             self.critic2, self.critic2_target = models
-        self.actor_optim, self.critic1_optim, self.critic2_optim = optims
+        self.actor_optim, self.critic_optim = optims
         self.hyper_params = hyper_params
         self.exploration_noise, self.target_policy_noise = noises
         self.curr_state = np.zeros((1,))
@@ -80,7 +80,7 @@ class Agent(AbstractAgent):
 
         # replay memory
         self.memory = ReplayBuffer(
-            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"], self.args.seed
+            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"],
         )
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
@@ -142,15 +142,13 @@ class Agent(AbstractAgent):
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
         critic1_loss = F.mse_loss(values1, target_values)
-        self.critic1_optim.zero_grad()
-        critic1_loss.backward()
-        self.critic1_optim.step()
-
         values2 = self.critic2(torch.cat((states, actions), dim=-1))
         critic2_loss = F.mse_loss(values2, target_values)
-        self.critic2_optim.zero_grad()
-        critic2_loss.backward()
-        self.critic2_optim.step()
+
+        critic_loss = critic1_loss + critic2_loss
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        self.critic_optim.step()
 
         if self.episode_steps % self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
@@ -166,7 +164,7 @@ class Agent(AbstractAgent):
             common_utils.soft_update(self.critic1, self.critic1_target, tau)
             common_utils.soft_update(self.critic2, self.critic2_target, tau)
         else:
-            actor_loss = -self.critic1(torch.cat((states, actions), dim=-1)).mean().detach()
+            actor_loss = torch.zeros(1)
 
         return actor_loss.data, critic1_loss.data, critic2_loss.data
 
@@ -184,8 +182,7 @@ class Agent(AbstractAgent):
         self.critic1_target.load_state_dict(params["critic1_target_state_dict"])
         self.critic2_target.load_state_dict(params["critic2_target_state_dict"])
         self.actor_optim.load_state_dict(params["actor_optim_state_dict"])
-        self.critic1_optim.load_state_dict(params["critic1_optim_state_dict"])
-        self.critic2_optim.load_state_dict(params["critic2_optim_state_dict"])
+        self.critic_optim.load_state_dict(params["critic_optim_state_dict"])
         print("[INFO] loaded the model and optimizer from", path)
 
     def save_params(self, n_episode: int):
@@ -198,11 +195,10 @@ class Agent(AbstractAgent):
             "critic1_target_state_dict": self.critic1_target.state_dict(),
             "critic2_target_state_dict": self.critic2_target.state_dict(),
             "actor_optim_state_dict": self.actor_optim.state_dict(),
-            "critic1_optim_state_dict": self.critic1_optim.state_dict(),
-            "critic2_optim_state_dict": self.critic2_optim.state_dict(),
+            "critic_optim_state_dict": self.critic_optim.state_dict(),
         }
 
-        AbstractAgent.save_params(self, self.args.algo, params, n_episode)
+        AbstractAgent.save_params(self, params, n_episode)
 
     def write_log(self, i: int, loss: np.ndarray, score: int):
         """Write log about loss and score"""
@@ -220,7 +216,7 @@ class Agent(AbstractAgent):
                     "total_steps": self.total_steps,
                     "score": score,
                     "total loss": total_loss,
-                    "actor loss": loss[0],
+                    "actor loss": loss[0] * self.hyper_params["POLICY_UPDATE_FREQ"],
                     "critic1 loss": loss[1],
                     "critic2 loss": loss[2],
                 }
