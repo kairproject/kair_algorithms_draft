@@ -64,17 +64,3 @@ class OUNoise:
         )
         self.state = x + dx
         return self.state
-
-
-class GaussianNoise:
-    """Gaussian Noise process."""
-
-    def __init__(self, size, seed, mu=0.0, sigma=0.2):
-        """Initialize parameters and noise process."""
-        self.size = size
-        self.mu = mu
-        self.sigma = sigma
-
-    def sample(self):
-        """Sample Gaussian noise."""
-        return np.random.normal(self.mu, self.sigma, size=self.size)
