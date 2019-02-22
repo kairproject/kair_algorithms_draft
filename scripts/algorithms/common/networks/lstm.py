@@ -62,7 +62,7 @@ class LSTM(nn.Module):
         self.hidden_layers: list = []
         in_size = self.input_size
         for i, next_size in enumerate(hidden_sizes):
-            lstm = nn.LSTM(in_size, next_size)
+            lstm = nn.LSTM(in_size, next_size, batch_first=True)
             in_size = next_size
             self.add_module("hidden_lstm{}".format(i), lstm)
             self.hidden_layers.append(lstm)
@@ -76,7 +76,8 @@ class LSTM(nn.Module):
     def get_last_activation(self, x: torch.Tensor) -> torch.Tensor:
         """Get the activation of the last hidden layer."""
         for hidden_layer in self.hidden_layers:
-            x = self.hidden_activation(hidden_layer(x))
+            x, _ = hidden_layer(x)
+            x = self.hidden_activation(x)
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
