@@ -49,8 +49,10 @@ def plot_overlapped_waves(x_range, input_wave, output_wave_nm):
         plt.plot(x_range, input_wave[i])
 
     output_wave_func = get_wave_func(output_wave_nm)
-    plt.plot(x_range, output_wave_func(x_range), c="r", lw=10, alpha=0.3)
+    plt.plot(x_range, output_wave_func(x_range), c="r", lw=10, alpha=0.3,
+            label='True')
 
+    plt.legend()
     plt.show()
 
 
