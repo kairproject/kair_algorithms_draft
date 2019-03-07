@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Train or test baselines on LunarLanderContinuous-v2.
 
@@ -27,6 +28,12 @@ parser.add_argument(
 parser.add_argument("--episode-num", type=int, default=1500, help="total episode num")
 parser.add_argument(
     "--max-episode-steps", type=int, default=300, help="max episode step"
+)
+parser.add_argument(
+    "--demo-path",
+    type=str,
+    default="data/lunarlander_continuous_demo.pkl",
+    help="demonstration path",
 )
 parser.add_argument(
     "--off-render", dest="render", action="store_false", help="turn off rendering"
