@@ -209,6 +209,21 @@ class Agent(AbstractAgent):
                 }
             )
 
+    def pretrain(self):
+        """Pretraining steps."""
+        pretrain_loss = list()
+        print("[INFO] Pre-Train %d step." % self.hyper_params["PRETRAIN_STEP"])
+        for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
+            experiences = self.memory.sample()
+            loss = self.update_model(experiences)
+            pretrain_loss.append(loss)  # for logging
+
+            # logging
+            if i_step == 1 or i_step % 100 == 0:
+                avg_loss = np.vstack(pretrain_loss).mean(axis=0)
+                pretrain_loss.clear()
+                self.write_log(i_step, avg_loss, is_step=True)
+
     def train(self):
         """Train the agent."""
         # logger
@@ -216,6 +231,9 @@ class Agent(AbstractAgent):
             wandb.init()
             wandb.config.update(self.hyper_params)
             wandb.watch([self.actor, self.critic], log="parameters")
+
+        # pre-training by demo
+        self.pretrain()
 
         for i_episode in range(1, self.args.episode_num + 1):
             state = self.env.reset()
