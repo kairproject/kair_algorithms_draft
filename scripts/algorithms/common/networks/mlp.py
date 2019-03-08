@@ -93,12 +93,21 @@ class MLP(nn.Module):
         return output
 
 
+class FlattenMLP(MLP):
+    """Baseline of Multilayer perceptron for Flatten input."""
+
+    def forward(self, *args: torch.Tensor) -> torch.Tensor:
+        """Forward method implementation."""
+        states, actions = args
+        flat_inputs = torch.cat((states, actions), dim=-1)
+        return super(FlattenMLP, self).forward(flat_inputs)
+
+
 class GaussianDist(MLP):
     """Multilayer perceptron with Gaussian distribution output.
 
     Attributes:
         mu_activation (function): bounding function for mean
-        log_std_clamping (bool): whether or not to clamp log std
         log_std_min (float): lower bound of log std
         log_std_max (float): upper bound of log std
         mu_layer (nn.Linear): output layer for mean
@@ -116,9 +125,7 @@ class GaussianDist(MLP):
         log_std_max: float = 2,
         init_w: float = 3e-3,
     ):
-        """Initialization.
-
-        """
+        """Initialization."""
         super(GaussianDist, self).__init__(
             input_size=input_size,
             output_size=output_size,
@@ -150,8 +157,9 @@ class GaussianDist(MLP):
         mu = self.mu_activation(self.mu_layer(hidden))
 
         # get std
-        log_std = torch.clamp(
-            self.log_std_layer(hidden), self.log_std_min, self.log_std_max
+        log_std = torch.tanh(self.log_std_layer(hidden))
+        log_std = self.log_std_min + 0.5 * (self.log_std_max - self.log_std_min) * (
+            log_std + 1
         )
         std = torch.exp(log_std)
 
@@ -166,16 +174,6 @@ class GaussianDist(MLP):
         action = dist.sample()
 
         return action, dist
-
-
-class GaussianDistParams(GaussianDist):
-    """Multilayer perceptron with Gaussian distribution params output."""
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        """Forward method implementation."""
-        mu, log_std, std = super(GaussianDistParams, self).get_dist_params(x)
-
-        return mu, log_std, std
 
 
 class TanhGaussianDistParams(GaussianDist):
