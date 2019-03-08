@@ -21,8 +21,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class PrioritizedReplayBufferfD(ReplayBuffer):
     """Create Prioritized Replay buffer with demo.
+
     Taken from OpenAI baselines github repository:
     https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
+
     Attributes:
         buffer (deque): deque of experience replay buffer
         demo (deque): deque of demo replay buffer
@@ -35,6 +37,7 @@ class PrioritizedReplayBufferfD(ReplayBuffer):
         sum_tree (SumSegmentTree): sum tree for prior
         min_tree (MinSegmentTree): min tree for min prior to get max weight
         init_priority (float): lower bound of priority
+
         """
 
     def __init__(
@@ -46,12 +49,14 @@ class PrioritizedReplayBufferfD(ReplayBuffer):
         epsilon_d: float = 1.0,
     ):
         """Initialization.
+
         Args:
             buffer_size (int): size of replay buffer for experience
             batch_size (int): size of a batched sampled from replay buffer for training
             demo (deque): demonstration
             alpha (float): alpha parameter for prioritized replay buffer
             epsilon_d (float) : epsilon_d parameter to update priority using demo
+
         """
         super(PrioritizedReplayBufferfD, self).__init__(buffer_size, batch_size, demo)
         assert alpha >= 0
