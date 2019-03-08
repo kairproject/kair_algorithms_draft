@@ -19,7 +19,9 @@ import wandb
 
 import algorithms.common.helper_functions as common_utils
 from algorithms.common.abstract.agent import AbstractAgent
-from algorithms.common.buffer.prioritized_replay_buffer import PrioritizedReplayBufferfD
+from algorithms.common.buffer.prioritized_replay_buffer_fd import (
+    PrioritizedReplayBufferfD,
+)
 from algorithms.common.noise import OUNoise
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
