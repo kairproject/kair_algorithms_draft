@@ -60,6 +60,8 @@ hyper_params = {
     "PER_EPS": 1e-6,
     "PER_EPS_DEMO": 1.0,
     "LAMBDA3": 1.0,  # Actor loss weight for computing priority
+    # Pretraining just with demo data
+    "PRETRAIN_STEP": 0,
 }
 
 
