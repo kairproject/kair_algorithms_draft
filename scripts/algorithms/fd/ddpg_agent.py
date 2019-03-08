@@ -19,7 +19,9 @@ import wandb
 
 import algorithms.common.helper_functions as common_utils
 from algorithms.common.abstract.agent import AbstractAgent
-from algorithms.common.buffer.prioritized_replay_buffer import PrioritizedReplayBufferfD
+from algorithms.common.buffer.prioritized_replay_buffer_fd import (
+    PrioritizedReplayBufferfD,
+)
 from algorithms.common.noise import OUNoise
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -181,7 +183,7 @@ class Agent(AbstractAgent):
             "critic_optim_state_dict": self.critic_optimizer.state_dict(),
         }
 
-        AbstractAgent.save_params(self, self.args.algo, params, n_episode)
+        AbstractAgent.save_params(self, params, n_episode)
 
     def write_log(
         self, i: int, loss: np.ndarray, score: int = 0, is_step: bool = False
@@ -209,21 +211,6 @@ class Agent(AbstractAgent):
                 }
             )
 
-    def pretrain(self):
-        """Pretraining steps."""
-        pretrain_loss = list()
-        print("[INFO] Pre-Train %d step." % self.hyper_params["PRETRAIN_STEP"])
-        for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
-            experiences = self.memory.sample()
-            loss = self.update_model(experiences)
-            pretrain_loss.append(loss)  # for logging
-
-            # logging
-            if i_step == 1 or i_step % 100 == 0:
-                avg_loss = np.vstack(pretrain_loss).mean(axis=0)
-                pretrain_loss.clear()
-                self.write_log(i_step, avg_loss, is_step=True)
-
     def train(self):
         """Train the agent."""
         # logger
@@ -231,9 +218,6 @@ class Agent(AbstractAgent):
             wandb.init()
             wandb.config.update(self.hyper_params)
             wandb.watch([self.actor, self.critic], log="parameters")
-
-        # pre-training by demo
-        self.pretrain()
 
         for i_episode in range(1, self.args.episode_num + 1):
             state = self.env.reset()

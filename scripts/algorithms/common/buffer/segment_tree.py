@@ -7,8 +7,10 @@ from typing import Callable
 
 class SegmentTree:
     """ Create SegmentTree.
+
     Taken from OpenAI baselines github repository:
     https://github.com/openai/baselines/blob/master/baselines/common/segment_tree.py
+
     Attributes:
         capacity (int)
         tree (list)
@@ -74,14 +76,18 @@ class SegmentTree:
 
 class SumSegmentTree(SegmentTree):
     """ Create SumSegmentTree.
+
     Taken from OpenAI baselines github repository:
     https://github.com/openai/baselines/blob/master/baselines/common/segment_tree.py
+
     """
 
     def __init__(self, capacity: int):
         """Initialization.
+
         Args:
             capacity (int)
+
         """
         super(SumSegmentTree, self).__init__(
             capacity=capacity, operation=operator.add, init_value=0.0
@@ -110,14 +116,18 @@ class SumSegmentTree(SegmentTree):
 
 class MinSegmentTree(SegmentTree):
     """ Create SegmentTree.
+
     Taken from OpenAI baselines github repository:
     https://github.com/openai/baselines/blob/master/baselines/common/segment_tree.py
+
     """
 
     def __init__(self, capacity: int):
         """Initialization.
+
         Args:
             capacity (int)
+
         """
         super(MinSegmentTree, self).__init__(
             capacity=capacity, operation=min, init_value=float("inf")
