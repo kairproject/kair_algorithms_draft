@@ -79,10 +79,15 @@ class Agent(AbstractAgent):
         if args.load_from is not None and os.path.exists(args.load_from):
             self.load_params(args.load_from)
 
-        # replay memory
-        self.memory = ReplayBuffer(
-            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"]
-        )
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize non-common things."""
+        if not self.args.test:
+            # replay memory
+            self.memory = ReplayBuffer(
+                self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
+            )
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input space."""
