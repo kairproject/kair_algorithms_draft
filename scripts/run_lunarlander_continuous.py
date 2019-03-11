@@ -40,6 +40,12 @@ parser.add_argument(
 parser.add_argument("--save-period", type=int, default=100, help="save model period")
 parser.add_argument("--log", action="store_true", help="turn on logging")
 parser.add_argument("--test", action="store_true", help="test mode (no training)")
+parser.add_argument(
+    "--demo-path",
+    type=str,
+    default="data/lunarlander_continuous_demo.pkl",
+    help="demonstration path",
+)
 parser.set_defaults(render=True)
 
 args = parser.parse_args()
