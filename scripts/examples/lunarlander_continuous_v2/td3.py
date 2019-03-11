@@ -65,25 +65,29 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
 
     # create critic1
     critic1 = MLP(
-        input_size=state_dim + action_dim, output_size=1,
-        hidden_sizes=hidden_sizes_critic
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
 
     critic1_target = MLP(
-        input_size=state_dim + action_dim, output_size=1,
-        hidden_sizes=hidden_sizes_critic
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
     critic1_target.load_state_dict(critic1.state_dict())
 
     # create critic2
     critic2 = MLP(
-        input_size=state_dim + action_dim, output_size=1,
-        hidden_sizes=hidden_sizes_critic
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
 
     critic2_target = MLP(
-        input_size=state_dim + action_dim, output_size=1,
-        hidden_sizes=hidden_sizes_critic
+        input_size=state_dim + action_dim,
+        output_size=1,
+        hidden_sizes=hidden_sizes_critic,
     ).to(device)
     critic2_target.load_state_dict(critic2.state_dict())
 

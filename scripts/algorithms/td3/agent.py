@@ -65,8 +65,9 @@ class Agent(AbstractAgent):
 
         """
         AbstractAgent.__init__(self, env, args)
-        self.actor, self.actor_target, self.critic1, self.critic1_target, \
-            self.critic2, self.critic2_target = models
+        self.actor, self.actor_target, self.critic1, self.critic1_target, self.critic2, self.critic2_target = (  # noqa: B950
+            models
+        )
         self.actor_optim, self.critic_optim = optims
         self.hyper_params = hyper_params
         self.exploration_noise, self.target_policy_noise = noises
@@ -80,7 +81,7 @@ class Agent(AbstractAgent):
 
         # replay memory
         self.memory = ReplayBuffer(
-            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"],
+            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"]
         )
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
@@ -137,7 +138,9 @@ class Agent(AbstractAgent):
             torch.cat((next_states, next_actions), dim=-1)
         )
         target_values = torch.min(target_values1, target_values2)
-        target_values = rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
+        target_values = (
+            rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
+        )
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
