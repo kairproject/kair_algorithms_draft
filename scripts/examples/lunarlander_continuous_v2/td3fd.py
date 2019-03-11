@@ -25,17 +25,16 @@ hyper_params = {
     "N_STEP": 3,
     "GAMMA": 0.99,
     "TAU": 5e-3,
-    "BUFFER_SIZE": int(1e6),
-    "BATCH_SIZE": 100,
-    "LR_ACTOR": 1e-3,
-    "LR_CRITIC": 1e-3,
-    "WEIGHT_DECAY": 0.0,
-    "EXPLORATION_NOISE": 0.1,
+    "BUFFER_SIZE": int(1e5),
+    "BATCH_SIZE": 64,
+    "LR_ACTOR": 3e-5,
+    "LR_CRITIC": 3e-5,
+    "EXPLORATION_NOISE": 0.0,
     "TARGET_POLICY_NOISE": 0.2,
     "TARGET_POLICY_NOISE_CLIP": 0.5,
     "POLICY_UPDATE_FREQ": 2,
-    "INITIAL_RANDOM_ACTIONS": 1e4,
-    "PRETRAIN_STEP": 100,
+    "INITIAL_RANDOM_ACTIONS": 5e3,
+    "PRETRAIN_STEP": 0,
     "MULTIPLE_LEARN": 2,  # multiple learning updates
     "LAMBDA1": 1.0,  # N-step return weight
     "LAMBDA2": 1e-5,  # l2 regularization weight
@@ -111,13 +110,13 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
     actor_optim = optim.Adam(
         actor.parameters(),
         lr=hyper_params["LR_ACTOR"],
-        weight_decay=hyper_params["WEIGHT_DECAY"],
+        weight_decay=hyper_params["LAMBDA2"],
     )
 
     critic_optim = optim.Adam(
         critic_parameters,
         lr=hyper_params["LR_CRITIC"],
-        weight_decay=hyper_params["WEIGHT_DECAY"],
+        weight_decay=hyper_params["LAMBDA2"],
     )
 
     # noise
