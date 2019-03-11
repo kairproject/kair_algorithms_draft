@@ -9,7 +9,7 @@
 """
 
 import pickle
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -48,9 +48,20 @@ class Agent(DDPGAgent):
                 epsilon_d=self.hyper_params["PER_EPS_DEMO"],
             )
 
-    def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_model(
+        self,
+        experiences: Tuple[
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            List[int],
+        ],
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Train the model after each episode."""
-        experiences = self.memory.sample(self.beta)
         states, actions, rewards, next_states, dones, weights, indexes, eps_d = (
             experiences
         )
