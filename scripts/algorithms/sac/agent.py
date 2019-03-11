@@ -106,6 +106,7 @@ class Agent(AbstractAgent):
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input space."""
         self.curr_state = state
+        state = self._preprocess_state(state)
 
         # if initial random action should be conducted
         if (
@@ -114,13 +115,17 @@ class Agent(AbstractAgent):
         ):
             return self.env.action_space.sample()
 
-        state = torch.FloatTensor(state).to(device)
         if self.args.test:
             _, _, _, selected_action, _ = self.actor(state)
         else:
             selected_action, _, _, _, _ = self.actor(state)
 
         return selected_action.detach().cpu().numpy()
+
+    def _preprocess_state(self, state: np.ndarray) -> torch.Tensor:
+        """Preprocess state so that actor selects an action."""
+        state = torch.FloatTensor(state).to(device)
+        return state
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
@@ -134,9 +139,14 @@ class Agent(AbstractAgent):
             done_bool = (
                 False if self.episode_step == self.args.max_episode_steps else done
             )
-            self.memory.add(self.curr_state, action, reward, next_state, done_bool)
+            transition = (self.curr_state, action, reward, next_state, done_bool)
+            self._add_transition_to_memory(transition)
 
         return next_state, reward, done
+
+    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+        """Add 1 step and n step transitions to memory."""
+        self.memory.add(*transition)
 
     def update_model(
         self,
