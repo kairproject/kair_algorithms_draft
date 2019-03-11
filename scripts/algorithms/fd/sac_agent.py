@@ -167,16 +167,15 @@ class Agent(SACAgent):
             actor_loss = torch.mean(actor_loss_element_wise * weights)
 
             # regularization
-            if not self.is_discrete:  # iff the action is continuous
-                mean_reg = self.hyper_params["W_MEAN_REG"] * mu.pow(2).mean()
-                std_reg = self.hyper_params["W_STD_REG"] * std.pow(2).mean()
-                pre_activation_reg = self.hyper_params["W_PRE_ACTIVATION_REG"] * (
-                    pre_tanh_value.pow(2).sum(dim=-1).mean()
-                )
-                actor_reg = mean_reg + std_reg + pre_activation_reg
+            mean_reg = self.hyper_params["W_MEAN_REG"] * mu.pow(2).mean()
+            std_reg = self.hyper_params["W_STD_REG"] * std.pow(2).mean()
+            pre_activation_reg = self.hyper_params["W_PRE_ACTIVATION_REG"] * (
+                pre_tanh_value.pow(2).sum(dim=-1).mean()
+            )
+            actor_reg = mean_reg + std_reg + pre_activation_reg
 
-                # actor loss + regularization
-                actor_loss += actor_reg
+            # actor loss + regularization
+            actor_loss += actor_reg
 
             # train actor
             self.actor_optimizer.zero_grad()
