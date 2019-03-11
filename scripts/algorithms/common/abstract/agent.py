@@ -14,6 +14,7 @@ from typing import Tuple
 import gym
 import numpy as np
 import torch
+from gym.spaces import Discrete
 
 
 class AbstractAgent(ABC):
@@ -24,6 +25,7 @@ class AbstractAgent(ABC):
         args (argparse.Namespace): arguments including hyperparameters and training settings
         env_name (str) : gym env name for logging
         sha (str): sha code of current git commit
+        is_discrete (bool): shows whether the action is discrete
 
     """
 
@@ -37,6 +39,12 @@ class AbstractAgent(ABC):
         """
         self.args = args
         self.env = NormalizedActions(env)
+
+        if isinstance(env.action_space, Discrete):
+            self.is_discrete = True
+        else:
+            self.is_discrete = False
+
         if self.args.max_episode_steps > 0:
             env._max_episode_steps = self.args.max_episode_steps
         else:
