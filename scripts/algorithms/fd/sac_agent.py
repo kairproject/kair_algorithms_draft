@@ -17,6 +17,7 @@ import torch
 
 import algorithms.common.helper_functions as common_utils
 from algorithms.common.buffer.priortized_replay_buffer import PrioritizedReplayBufferfD
+from algorithms.common.buffer.replay_buffer import NStepTransitionBuffer
 from algorithms.sac.agent import Agent as SACAgent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -34,21 +35,48 @@ class Agent(SACAgent):
     # pylint: disable=attribute-defined-outside-init
     def _initialize(self):
         """Initialize non-common things."""
+        self.use_n_step = self.hyper_params["N_STEP"] > 1
+
         if not self.args.test:
             # load demo replay memory
             with open(self.args.demo_path, "rb") as f:
-                demo = pickle.load(f)
+                demos = pickle.load(f)
+
+            if self.use_n_step:
+                demos, demos_n_step = common_utils.get_n_step_info_from_demo(
+                    demos, self.hyper_params["N_STEP"], self.hyper_params["GAMMA"]
+                )
+
+                # replay memory for multi-steps
+                self.memory_n = NStepTransitionBuffer(
+                    buffer_size=self.hyper_params["BUFFER_SIZE"],
+                    n_step=self.hyper_params["N_STEP"],
+                    gamma=self.hyper_params["GAMMA"],
+                    demo=demos_n_step,
+                )
 
             # replay memory
             self.beta = self.hyper_params["PER_BETA"]
             self.memory = PrioritizedReplayBufferfD(
                 self.hyper_params["BUFFER_SIZE"],
                 self.hyper_params["BATCH_SIZE"],
-                demo=list(demo),
+                demo=demos,
                 alpha=self.hyper_params["PER_ALPHA"],
                 epsilon_d=self.hyper_params["PER_EPS_DEMO"],
             )
 
+    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+        """Add 1 step and n step transitions to memory."""
+        # add n-step transition
+        if self.use_n_step:
+            transition = self.memory_n.add(transition)
+
+        # add a single step transition
+        # if transition is not an empty tuple
+        if transition:
+            self.memory.add(*transition)
+
+    # pylint: disable=too-many-statements
     def update_model(
         self,
         experiences: Tuple[
@@ -63,7 +91,7 @@ class Agent(SACAgent):
         ],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Train the model after each episode."""
-        states, actions, rewards, next_states, dones, weights, indexes, eps_d = (
+        states, actions, rewards, next_states, dones, weights, indices, eps_d = (
             experiences
         )
         new_actions, log_prob, pre_tanh_value, mu, std = self.actor(states)
@@ -85,12 +113,29 @@ class Agent(SACAgent):
 
         # Q function loss
         masks = 1 - dones
+        gamma = self.hyper_params["GAMMA"]
         q_1_pred = self.qf_1(states, actions)
         q_2_pred = self.qf_2(states, actions)
         v_target = self.vf_target(next_states)
         q_target = rewards + self.hyper_params["GAMMA"] * v_target * masks
         qf_1_loss = torch.mean((q_1_pred - q_target.detach()).pow(2) * weights)
         qf_2_loss = torch.mean((q_2_pred - q_target.detach()).pow(2) * weights)
+
+        if self.use_n_step:
+            experiences_n = self.memory_n.sample(indices)
+            _, _, rewards, next_states, dones = experiences_n
+            gamma = gamma ** self.hyper_params["N_STEP"]
+            lambda1 = self.hyper_params["LAMBDA1"]
+            masks = 1 - dones
+
+            v_target = self.vf_target(next_states)
+            q_target = rewards + gamma * v_target * masks
+            qf_1_loss_n = torch.mean((q_1_pred - q_target.detach()).pow(2) * weights)
+            qf_2_loss_n = torch.mean((q_2_pred - q_target.detach()).pow(2) * weights)
+
+            # to update loss and priorities
+            qf_1_loss = qf_1_loss + qf_1_loss_n * lambda1
+            qf_2_loss = qf_2_loss + qf_2_loss_n * lambda1
 
         # V function loss
         v_pred = self.vf(states)
@@ -149,7 +194,7 @@ class Agent(SACAgent):
             new_priorities += self.hyper_params["PER_EPS"]
             new_priorities = new_priorities.data.cpu().numpy().squeeze()
             new_priorities += eps_d
-            self.memory.update_priorities(indexes, new_priorities)
+            self.memory.update_priorities(indices, new_priorities)
 
             # increase beta
             fraction = min(float(self.i_episode) / self.args.episode_num, 1.0)
