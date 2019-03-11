@@ -31,7 +31,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         tree_idx (int): next index of tree
         sum_tree (SumSegmentTree): sum tree for prior
         min_tree (MinSegmentTree): min tree for min prior to get max weight
-        init_priority (float): lower bound of priority
+        _max_priority (float): max priority
 
         """
 
@@ -57,7 +57,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         self.sum_tree = SumSegmentTree(tree_capacity)
         self.min_tree = MinSegmentTree(tree_capacity)
-        self.init_priority = 1.0
+        self._max_priority = 1.0
 
     def add(
         self,
@@ -72,8 +72,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.tree_idx = (self.tree_idx + 1) % self.buffer_size
         super().add(state, action, reward, next_state, done)
 
-        self.sum_tree[idx] = self.init_priority ** self.alpha
-        self.min_tree[idx] = self.init_priority ** self.alpha
+        self.sum_tree[idx] = self._max_priority ** self.alpha
+        self.min_tree[idx] = self._max_priority ** self.alpha
 
     def extend(self, transitions: list):
         """Add experiences to memory."""
@@ -138,7 +138,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self.sum_tree[idx] = priority ** self.alpha
             self.min_tree[idx] = priority ** self.alpha
 
-            self.init_priority = max(self.init_priority, priority)
+            self._max_priority = max(self._max_priority, priority)
 
 
 class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
