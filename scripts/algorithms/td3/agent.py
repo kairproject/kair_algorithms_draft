@@ -227,8 +227,8 @@ class Agent(AbstractAgent):
 
         print(
             "[INFO] total_steps: %d episode: %d total score: %d, total loss: %f\n"
-            "actor_loss: %.3f critic_loss: %.3f\n"
-            % (self.total_steps, i, score, total_loss, loss[0], loss[1])
+            "actor_loss: %.3f critic1_loss: %.3f critic2_loss: %.3f\n"
+            % (self.total_steps, i, score, total_loss, loss[0], loss[1], loss[2])
         )
 
         if self.args.log:
