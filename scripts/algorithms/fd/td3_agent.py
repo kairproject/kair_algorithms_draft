@@ -75,24 +75,11 @@ class Agent(TD3Agent):
         if transition:
             self.memory.add(*transition)
 
-    # pylint: disable=too-many-statements
-    def update_model(
-        self,
-        experiences: Tuple[
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            List[int],
-        ],
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Train the model after each episode."""
-        states, actions, rewards, next_states, dones, weights, indices, eps_d = (
-            experiences
-        )
+    def _get_critic_loss(
+        self, experiences: Tuple[torch.Tensor, ...], gamma: float
+    ) -> torch.Tensor:
+        """Return element-wise critic loss."""
+        states, actions, rewards, next_states, dones = experiences[:5]
 
         # G_t   = r + gamma * v(s_{t+1})  if state != Terminal
         #       = r                       otherwise
@@ -119,14 +106,57 @@ class Agent(TD3Agent):
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
         critic1_loss_element_wise = (values1 - target_values.detach()).pow(2)
-        critic1_loss = torch.mean(critic1_loss_element_wise * weights)
 
         values2 = self.critic2(torch.cat((states, actions), dim=-1))
         critic2_loss_element_wise = (values2 - target_values.detach()).pow(2)
-        critic2_loss = torch.mean(critic2_loss_element_wise * weights)
 
+        return critic1_loss_element_wise, critic2_loss_element_wise
+
+    # pylint: disable=too-many-statements
+    def update_model(
+        self,
+        experiences: Tuple[
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            List[int],
+        ],
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Train the model after each episode."""
+        states, actions, rewards, next_states, dones, weights, indices, eps_d = (
+            experiences
+        )
+
+        gamma = self.hyper_params["GAMMA"]
+        critic1_loss_element_wise, critic2_loss_element_wise = self._get_critic_loss(
+            experiences, gamma
+        )
         critic_loss_element_wise = critic1_loss_element_wise + critic2_loss_element_wise
+        critic1_loss = torch.mean(critic1_loss_element_wise * weights)
+        critic2_loss = torch.mean(critic1_loss_element_wise * weights)
         critic_loss = critic1_loss + critic2_loss
+
+        if self.use_n_step:
+            experiences_n = self.memory_n.sample(indices)
+            gamma = self.hyper_params["GAMMA"] ** self.hyper_params["N_STEP"]
+            critic1_loss_n_element_wise, critic2_loss_n_element_wise = self._get_critic_loss(
+                experiences_n, gamma
+            )
+            critic_loss_n_element_wise = (
+                critic1_loss_n_element_wise + critic2_loss_n_element_wise
+            )
+            critic1_loss_n = torch.mean(critic1_loss_n_element_wise * weights)
+            critic2_loss_n = torch.mean(critic2_loss_n_element_wise * weights)
+            critic_loss_n = critic1_loss_n + critic2_loss_n
+
+            lambda1 = self.hyper_params["LAMBDA1"]
+            critic_loss_element_wise += lambda1 * critic_loss_n_element_wise
+            critic_loss += lambda1 * critic_loss_n
+
         self.critic_optim.zero_grad()
         critic_loss.backward()
         self.critic_optim.step()
