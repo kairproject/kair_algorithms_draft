@@ -137,7 +137,7 @@ class Agent(TD3Agent):
         )
         critic_loss_element_wise = critic1_loss_element_wise + critic2_loss_element_wise
         critic1_loss = torch.mean(critic1_loss_element_wise * weights)
-        critic2_loss = torch.mean(critic1_loss_element_wise * weights)
+        critic2_loss = torch.mean(critic2_loss_element_wise * weights)
         critic_loss = critic1_loss + critic2_loss
 
         if self.use_n_step:
