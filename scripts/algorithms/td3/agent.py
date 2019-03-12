@@ -110,11 +110,24 @@ class Agent(AbstractAgent):
 
     def step(self, action: torch.Tensor) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
+        self.total_steps += 1
+        self.episode_steps += 1
+
         next_state, reward, done, _ = self.env.step(action)
 
-        self.memory.add(self.curr_state, action, reward, next_state, done)
+        if not self.args.test:
+            # if the last state is not a terminal state, store done as false
+            done_bool = (
+                False if self.episode_steps == self.args.max_episode_steps else done
+            )
+            transition = (self.curr_state, action, reward, next_state, done_bool)
+            self._add_transition_to_memory(transition)
 
         return next_state, reward, done
+
+    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+        """Add 1 step and n step transitions to memory."""
+        self.memory.add(*transition)
 
     def update_model(
         self,
@@ -251,8 +264,6 @@ class Agent(AbstractAgent):
 
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
-                self.total_steps += 1
-                self.episode_steps += 1
 
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
                     experiences = self.memory.sample()
