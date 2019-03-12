@@ -164,8 +164,10 @@ class Agent(TD3Agent):
         if self.episode_steps % self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
             actions = self.actor(states)
-            actor_loss_element_wise = self.critic1(torch.cat((states, actions), dim=-1))
-            actor_loss = -actor_loss_element_wise.mean()
+            actor_loss_element_wise = -self.critic1(
+                torch.cat((states, actions), dim=-1)
+            )
+            actor_loss = torch.mean(actor_loss_element_wise * weights)
             self.actor_optim.zero_grad()
             actor_loss.backward()
             self.actor_optim.step()
