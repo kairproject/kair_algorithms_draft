@@ -37,6 +37,13 @@ parser.add_argument(
     default=0,
     help="start rendering after the input number of episode",
 )
+
+parser.add_argument(
+    "--demo-path",
+    type=str,
+    default="data/lunarlander_continuous_demo.pkl",
+    help="demonstration path",
+)
 parser.add_argument("--save-period", type=int, default=100, help="save model period")
 parser.add_argument("--log", action="store_true", help="turn on logging")
 parser.add_argument("--test", action="store_true", help="test mode (no training)")

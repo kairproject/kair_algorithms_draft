@@ -35,9 +35,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         """
 
-    def __init__(
-        self, buffer_size: int, batch_size: int, alpha: float = 0.6
-    ):
+    def __init__(self, buffer_size: int, batch_size: int, alpha: float = 0.6):
         """Initialization.
 
         Args:
