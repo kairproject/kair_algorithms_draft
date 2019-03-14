@@ -65,9 +65,10 @@ class Agent(AbstractAgent):
 
         """
         AbstractAgent.__init__(self, env, args)
-        self.actor, self.actor_target, self.critic1, self.critic1_target, self.critic2, self.critic2_target = (  # noqa: B950
-            models
-        )
+        self.actor, self.actor_target = models[:2]
+        self.critic1, self.critic1_target = models[2:4]
+        self.critic2, self.critic2_target = models[4:]
+
         self.actor_optim, self.critic_optim = optims
         self.hyper_params = hyper_params
         self.exploration_noise, self.target_policy_noise = noises
