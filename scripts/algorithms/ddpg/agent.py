@@ -40,6 +40,7 @@ class Agent(AbstractAgent):
         curr_state (np.ndarray): temporary storage of the current state
         total_step (int): total step numbers
         episode_step (int): step number of the current episode
+        i_episode (int): current episode number
 
     """
 
@@ -72,20 +73,26 @@ class Agent(AbstractAgent):
         self.noise = noise
         self.total_step = 0
         self.episode_step = 0
+        self.i_episode = 0
 
         # load the optimizer and model parameters
         if args.load_from is not None and os.path.exists(args.load_from):
             self.load_params(args.load_from)
 
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize non-common things."""
         if not self.args.test:
             # replay memory
             self.memory = ReplayBuffer(
-                hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"]
+                self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
             )
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input space."""
         self.curr_state = state
+        state = self._preprocess_state(state)
 
         # if initial random action should be conducted
         if (
@@ -94,7 +101,6 @@ class Agent(AbstractAgent):
         ):
             return self.env.action_space.sample()
 
-        state = torch.FloatTensor(state).to(device)
         selected_action = self.actor(state)
 
         if not self.args.test:
@@ -102,6 +108,11 @@ class Agent(AbstractAgent):
             selected_action = torch.clamp(selected_action, -1.0, 1.0)
 
         return selected_action.detach().cpu().numpy()
+
+    def _preprocess_state(self, state: np.ndarray) -> torch.Tensor:
+        """Preprocess state so that actor selects an action."""
+        state = torch.FloatTensor(state).to(device)
+        return state
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
@@ -115,9 +126,14 @@ class Agent(AbstractAgent):
             done_bool = (
                 False if self.episode_step == self.args.max_episode_steps else done
             )
-            self.memory.add(self.curr_state, action, reward, next_state, done_bool)
+            transition = (self.curr_state, action, reward, next_state, done_bool)
+            self._add_transition_to_memory(transition)
 
         return next_state, reward, done
+
+    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+        """Add 1 step and n step transitions to memory."""
+        self.memory.add(*transition)
 
     def update_model(
         self,
@@ -221,7 +237,7 @@ class Agent(AbstractAgent):
             wandb.config.update(self.hyper_params)
             wandb.watch([self.actor, self.critic], log="parameters")
 
-        for i_episode in range(1, self.args.episode_num + 1):
+        for self.i_episode in range(1, self.args.episode_num + 1):
             state = self.env.reset()
             done = False
             score = 0
@@ -229,7 +245,7 @@ class Agent(AbstractAgent):
             loss_episode = list()
 
             while not done:
-                if self.args.render and i_episode >= self.args.render_after:
+                if self.args.render and self.i_episode >= self.args.render_after:
                     self.env.render()
 
                 action = self.select_action(state)
@@ -246,10 +262,10 @@ class Agent(AbstractAgent):
             # logging
             if loss_episode:
                 avg_loss = np.vstack(loss_episode).mean(axis=0)
-                self.write_log(i_episode, avg_loss, score)
+                self.write_log(self.i_episode, avg_loss, score)
 
-            if i_episode % self.args.save_period == 0:
-                self.save_params(i_episode)
+            if self.i_episode % self.args.save_period == 0:
+                self.save_params(self.i_episode)
 
         # termination
         self.env.close()

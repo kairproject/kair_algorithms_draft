@@ -37,6 +37,7 @@ class AbstractAgent(ABC):
         """
         self.args = args
         self.env = NormalizedActions(env)
+
         if self.args.max_episode_steps > 0:
             env._max_episode_steps = self.args.max_episode_steps
         else:
