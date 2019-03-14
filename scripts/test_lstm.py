@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """Simple test case(sine+noise->cos) for LSTM network."""
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-import torch.optim as optim
 import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
 
 from algorithms.common.networks.lstm import LSTM
 

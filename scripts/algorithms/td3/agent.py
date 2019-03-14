@@ -65,8 +65,9 @@ class Agent(AbstractAgent):
 
         """
         AbstractAgent.__init__(self, env, args)
-        self.actor, self.actor_target, self.critic1, self.critic1_target, \
-            self.critic2, self.critic2_target = models
+        self.actor, self.actor_target, self.critic1, self.critic1_target, self.critic2, self.critic2_target = (  # noqa: B950
+            models
+        )
         self.actor_optim, self.critic_optim = optims
         self.hyper_params = hyper_params
         self.exploration_noise, self.target_policy_noise = noises
@@ -78,10 +79,15 @@ class Agent(AbstractAgent):
         if args.load_from is not None and os.path.exists(args.load_from):
             self.load_params(args.load_from)
 
-        # replay memory
-        self.memory = ReplayBuffer(
-            hyper_params["BUFFER_SIZE"], hyper_params["BATCH_SIZE"],
-        )
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize non-common things."""
+        if not self.args.test:
+            # replay memory
+            self.memory = ReplayBuffer(
+                self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
+            )
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input space."""
@@ -104,11 +110,24 @@ class Agent(AbstractAgent):
 
     def step(self, action: torch.Tensor) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
+        self.total_steps += 1
+        self.episode_steps += 1
+
         next_state, reward, done, _ = self.env.step(action)
 
-        self.memory.add(self.curr_state, action, reward, next_state, done)
+        if not self.args.test:
+            # if the last state is not a terminal state, store done as false
+            done_bool = (
+                False if self.episode_steps == self.args.max_episode_steps else done
+            )
+            transition = (self.curr_state, action, reward, next_state, done_bool)
+            self._add_transition_to_memory(transition)
 
         return next_state, reward, done
+
+    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+        """Add 1 step and n step transitions to memory."""
+        self.memory.add(*transition)
 
     def update_model(
         self,
@@ -137,7 +156,9 @@ class Agent(AbstractAgent):
             torch.cat((next_states, next_actions), dim=-1)
         )
         target_values = torch.min(target_values1, target_values2)
-        target_values = rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
+        target_values = (
+            rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
+        )
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
@@ -206,8 +227,8 @@ class Agent(AbstractAgent):
 
         print(
             "[INFO] total_steps: %d episode: %d total score: %d, total loss: %f\n"
-            "actor_loss: %.3f critic_loss: %.3f\n"
-            % (self.total_steps, i, score, total_loss, loss[0], loss[1])
+            "actor_loss: %.3f critic1_loss: %.3f critic2_loss: %.3f\n"
+            % (self.total_steps, i, score, total_loss, loss[0], loss[1], loss[2])
         )
 
         if self.args.log:
@@ -243,8 +264,6 @@ class Agent(AbstractAgent):
 
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
-                self.total_steps += 1
-                self.episode_steps += 1
 
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
                     experiences = self.memory.sample()
