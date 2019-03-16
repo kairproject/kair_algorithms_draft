@@ -1,40 +1,31 @@
-#!/usr/bin/env python
-import sys
-import os
-import rospy
-import numpy as np
-import rospkg
-# reads open manipulator's state
-from geometry_msgs.msg import Pose, PoseStamped
-from sensor_msgs.msg import JointState, Image
-from std_msgs.msg import *
-from control_msgs.msg import JointTrajectoryControllerState
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from gazebo_msgs.msg import ContactsState
-from tf import TransformListener
+#! /usr/bin/env python
+
+import copy
 import math
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
-from string import Template
+import os
+import sys
 import time
 from random import *
-from geometry_msgs.msg import (
-    PoseStamped,
-    Pose,
-    Point,
-    Quaternion,
-)
+from string import Template
 
-from gazebo_msgs.srv import (
-    SetModelState,
-    GetModelState,
-    SpawnModel,
-    DeleteModel,
-)
+import cv2
+import rospy
+from control_msgs.msg import JointTrajectoryControllerState
+from cv_bridge import CvBridge, CvBridgeError
+from gazebo_msgs.msg import ContactsState
+from gazebo_msgs.srv import (DeleteModel, GetModelState, SetModelState,
+                             SpawnModel)
+# reads open_manipulator's state
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
+from open_manipulator_msgs.msg import *
+from sensor_msgs.msg import Image, JointState
+from std_msgs.msg import *
+from tf import TransformListener
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-from gazebo_msgs.srv import (
-    GetModelState
-)
+import numpy as np
+import rospkg
+
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 overhead_orientation = Quaternion(
@@ -43,8 +34,6 @@ overhead_orientation = Quaternion(
                          z=-0.00177030764765,
                          w=0.00253311793936)
 
-# to read ee position
-from open_manipulator_msgs.msg import *
 
 # episode termination condition
 X_MIN = 0.1
@@ -57,19 +46,21 @@ TERM_COUNT = 10
 SUC_COUNT = 10
 
 
-ACTION_DIM = 3 # Cartesian
-OBS_DIM = (100,100,3)      # POMDP
-STATE_DIM = 24        # MDP
+# Global variables
+# -------------------------
+ACTION_DIM = 3  # Cartesian
+OBS_DIM = (100, 100, 3)  # POMDP
+STATE_DIM = 24  # MDP
 
-class robotEnv():
-    def __init__(self, max_steps=700, isdagger=False, isPOMDP=False, isreal=False, train_indicator=0):
+
+class OpenManipulatorEnv():
+    def __init__(self, max_steps=700, isdagger=False, isPOMDP=False, isreal=False,
+    train_indicator=0):
         """An implementation of OpenAI-Gym style robot reacher environment
         TODO: add method that receives target object's pose as state
         """
-        rospy.init_node("robotEnv")
-        # for compatiability
-
-        self.train_indicator = train_indicator # 0: Train 1:Test
+        rospy.init_node('OpenManipulatorEnv')
+        self.train_indicator = train_indicator  # 0: Train 1:Test
         self.isdagger = isdagger
         self.isPOMDP = isPOMDP
         self.isreal = isreal
@@ -78,11 +69,11 @@ class robotEnv():
         self.reached = False
         self.tf = TransformListener()
         self.bridge = CvBridge()
-        self.joint_speeds = [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
-        self.joint_positions = [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
-        self.joint_velocities = [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
-        self.joint_efforts = [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
-        self.right_endpoint_position = [0,0,0]
+        self.joint_speeds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joint_efforts = [0.0, 0.0, .0, 0.0, 0.0, 0.0, 0.0]
+        self.right_endpoint_position = [0, 0, 0]
         self.max_steps = max_steps
         self.done = False
         self.reward = 0
@@ -103,19 +94,19 @@ class robotEnv():
         self.joints_position_cmd = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.kinematics_cmd = [0.0, 0.0, 0.0]
         self.sub_joint_state = rospy.Subscriber('/open_manipulator/joint_states', JointState, self.joint_state_callback)
-        # joint effort/position/velocity
+        # joint position/velocity/effort
         self.sub_kinematics_pose = rospy.Subscriber('/open_manipulator/gripper/kinematics_pose', KinematicsPose, self.kinematics_pose_callback)
         self.sub_robot_state = rospy.Subscriber('/open_manipulator/states', OpenManipulatorState, self.robot_state_callback)
         # cs position / orientation
         # variables for subscribe the joint states
-        self.joint_names = ["joint1", "joint2", "joint3", "joint4", "gripper"]  # name: [gripper, gripper_sub, joint1, joint2, joint3, joint4]
+        self.joint_names = ["gripper", "gripper_sub", "joint1", "joint2", "joint3", "joint4"]  # name: [gripper, gripper_sub, joint1, joint2, joint3, joint4]
         self.joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_efforts = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # ee pose of robot -> used to compute reward.
-        self.gripper_position = [0.0,0.0,0.0]  # [x, y, z] cartesian position
-        self.gripper_orientiation = [0.0,0.0,0.0, 0.0]  # [x, y, z, w] quaternion orientation
+        self.gripper_position = [0.0, 0.0, 0.0]  # [x, y, z] cartesian position
+        self.gripper_orientiation = [0.0, 0.0, 0.0]  # [x, y, z, w] quaternion orientation
         self.distance_threshold = 0.1
 
         # used for per-step elapsed time measurement
@@ -125,16 +116,15 @@ class robotEnv():
         # self.initial_state = self.get_joints_states().copy()
         self._action_scale = 1.0
 
-        #open manipulator statets
+        # open manipulator statets
         self.moving_state = ""
         self.actuator_state = ""
         self.init_robot_pose()
         rospy.on_shutdown(self._delete_target_block)
 
-
     def robot_state_callback(self, msg):
-        self.moving_state = msg.open_manipulator_moving_state # "MOVING" / "STOPPED"
-        self.actuator_state = msg.open_manipulator_actuator_state # "ACTUATOR_ENABLE" / "ACTUATOR_DISABLE"
+        self.moving_state = msg.open_manipulator_moving_state  # "MOVING" / "STOPPED"
+        self.actuator_state = msg.open_manipulator_actuator_state  # "ACTUATOR_ENABLE" / "ACTUATOR_DISABLE"
 
     def joint_state_callback(self, msg):
         """Callback function of joint states subscriber.
@@ -147,7 +137,6 @@ class robotEnv():
         self.joint_efforts = self.joints_states.effort
         # penalize jerky motion in reward for shaped reward setting.
         self.squared_sum_vel = np.linalg.norm(np.array(self.joint_velocities))
-
 
     def kinematics_pose_callback(self, msg):
         """Callback function of gripper kinematic pose subscriber.
@@ -181,13 +170,11 @@ class robotEnv():
         return self.gripper_position
 
     def set_joints_position(self, joints_angles):
-
         """Move joints using joint position command publishers.
-
         Argument: joints_position_cmd
         self.joints_position_cmd = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         """
-        # rospy.loginfo(joints_angles)
+        # rospy.loginfo(Set joint position)
         self.pub_gripper_position.publish(joints_angles[0])
         self.pub_gripper_sub_position.publish(joints_angles[1])
         self.pub_joint1_position.publish(joints_angles[2])
@@ -195,9 +182,8 @@ class robotEnv():
         self.pub_joint3_position.publish(joints_angles[4])
         self.pub_joint4_position.publish(joints_angles[5])
 
-    def step(self, action=np.array([1, 1, 1, 1, 1, 1]), step=0):#overriden function
-        """
-        Function executed each time step.
+    def step(self, action=np.array([1, 1, 1, 1, 1, 1]), step=0):
+        """Function executed each time step.
         Here we get the action execute it in a time step and retrieve the
         observations generated by that action.
         :param action:
@@ -205,27 +191,27 @@ class robotEnv():
         """
         self.prev_tic = self.tic
         self.tic = time.time()
-        self.elapsed =  time.time()-self.prev_tic
+        self.elapsed = time.time() - self.prev_tic
         self.done = False
         if step == self.max_steps:
             self.done = True
         act = action.flatten().tolist()
         self.set_joints_position(act)
-        curDist =  self._get_dist()
+        curDist = self._get_dist()
         if not self.isreal:
             self.reward = self._compute_reward()
             if self._check_for_termination():
-                print ('======================================================')
-                print ('Terminates current Episode : OUT OF BOUNDARY')
-                print ('======================================================')
+                print('======================================================')
+                print('Terminates current Episode : OUT OF BOUNDARY')
+                print('======================================================')
             elif self._check_for_success():
-                print ('======================================================')
-                print ('Succeeded current Episode')
-                print ('======================================================')
+                print('======================================================')
+                print('Succeeded current Episode')
+                print('======================================================')
         _joint_pos, _joint_vels, _joint_effos = self.get_joints_states()
-        # obj_pos = self._get_target_obj_obs() # TODO: implement this function call.
+        # obj_pos = self._get_target_obj_obs() # TODO: implement this function call.            
 
-        if np.mod(step, 10)==0:
+        if np.mod(step, 10) == 0:
             if not self.isreal:
                 print("DISTANCE : ", curDist)
             print("PER STEP ELAPSED : ", self.elapsed)
@@ -254,7 +240,7 @@ class robotEnv():
         """Check if robot has reached its initial pose.
         """
         while not rospy.is_shutdown():
-            if self.moving_state=="STOPPED":
+            if self.moving_state == "STOPPED":
                 break
         return True
 
@@ -293,18 +279,18 @@ class robotEnv():
     def _load_target_block(block_pose=Pose(position=Point(x=0.6725, y=0.1265, z=0.7825)),
                         block_reference_frame="world"):
         # Get Models' Path
-        model_path = rospkg.RosPack().get_path('test_om')+"/models/"
+        model_path = rospkg.RosPack().get_path('kair_algorithms')+"/urdf/"
 
         # Load Block URDF
         block_xml = ''
 
         with open (model_path + "block/model.urdf", "r") as block_file:
-            block_xml=block_file.read().replace('\n', '')
+            block_xml = block_file.read().replace('\n', '')
 
-        rand_pose = Pose(position=Point(x=np.random.uniform(0.1,0.15),
-                                        y=np.random.uniform(0,50.6),
-                                        z=np.random.uniform(0.0,0.1)),
-                    orientation=overhead_orientation)
+        rand_pose = Pose(position=Point(x=np.random.uniform(0.1,0.15), 
+                                         y=np.random.uniform(0,50.6), 
+                                         z=np.random.uniform(0.0,0.1)),
+                     orientation=overhead_orientation)   
 
         # Spawn Block URDF
         rospy.wait_for_service('/gazebo/spawn_urdf_model')
@@ -315,27 +301,27 @@ class robotEnv():
         except rospy.ServiceException as e:
             rospy.logerr("Spawn URDF service call failed: {0}".format(e))
 
-
     def _check_for_termination(self):
         """
         Check if the agent has reached undesirable state. If so, terminate the episode early.
         """
         _ee_pose = self.get_gripper_position()
         if not ((X_MIN < _ee_pose[0] < X_MAX) and (Y_MIN < _ee_pose[1] < Y_MAX) and (Z_MIN < _ee_pose[1] < Z_MAX)):
-            self.termination_count +=1
-            if self.termination_count == TERM_COUNT:
-                self.done = True
-                self.termination_count = 0
-                return True
+            self.termination_count += 1
+        if self.termination_count == TERM_COUNT:
+            self.done = True
+            self.termination_count = 0
+            return True
         else:
             return False
+
     def _check_for_success(self):
         """
         Check if the agent has succeeded the episode.
         """
         _dist = self._get_dist()
         if _dist < self.distance_threshold:
-            self.success_count +=1
+            self.success_count += 1
             if self.success_count == SUC_COUNT:
                 self.done = True
                 self.success_count = 0
@@ -348,9 +334,9 @@ class robotEnv():
         """
         cur_dist = self._get_dist()
         if self.reward_type == 'sparse':
-            return (cur_dist <= self.distance_threshold).astype(np.float32) # 1 for success else 0
+            return (cur_dist <= self.distance_threshold).astype(np.float32)  # 1 for success else 0
         else:
-            return -cur_dist -self.squared_sum_vel # -L2 distance -l2_norm(joint_vels)
+            return -cur_dist - self.squared_sum_vel  # -L2 distance -l2_norm(joint_vels)
 
     def _get_dist(self):
         rospy.wait_for_service('/gazebo/get_model_state')
@@ -360,9 +346,8 @@ class robotEnv():
             self._obj_pose = np.array([object_state.pose.position.x, object_state.pose.position.y, object_state.pose.position.z])
         except rospy.ServiceException as e:
             rospy.logerr("Spawn URDF service call failed: {0}".format(e))
-        _ee_pose = np.array(self.get_gripper_position()) # FK state of robot
+        _ee_pose = np.array(self.get_gripper_position())  # FK state of robot
         return np.linalg.norm(_ee_pose-self._obj_pose)
 
     def close(self):
         rospy.signal_shutdown("done")
-
