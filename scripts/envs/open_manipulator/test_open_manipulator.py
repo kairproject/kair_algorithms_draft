@@ -5,7 +5,7 @@ from math import pi, sin
 import numpy as np
 
 import rospy
-from open_manipulator import OpenManipulatorEnv
+from .open_manipulator import OpenManipulatorEnv
 
 
 if __name__ == "__main__":
