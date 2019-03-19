@@ -12,7 +12,7 @@ from gazebo_msgs.srv import (DeleteModel, GetModelState,
 from geometry_msgs.msg import Point, Pose, Quaternion
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from sensor_msgs.msg import JointState
-from std_msgs import Float64
+from std_msgs.msg import *
 from tf import TransformListener
 
 import numpy as np
