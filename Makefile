@@ -1,5 +1,5 @@
 test:
-	pytest --flake8  # --cov=algorithms
+	flake8 .
 
 format:
 	black .
