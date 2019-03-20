@@ -1,19 +1,12 @@
-# Research Repository Structure
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/6107926/54689322-a0503500-4b62-11e9-87f7-aff03dbbb6dd.png" alt="KAIR"/>
+</p>
+
+# KAIR Algorithms
+
+## Research Repository Structure
 
 We follow the `.git` strategy specified [here](https://answers.ros.org/question/257855/git-strategy-for-catkin-and-package-folders/), creating packages into separate repositories.
-
-These are repositories checked to set this structure:
-- [cadrl_ros](https://github.com/mfe7/cadrl_ros)
-- [ros_best_practices](https://github.com/leggedrobotics/ros_best_practices)
-
-## TODO
-
-1. Add [medipixel/reinforcement_learning_examples](https://github.com/medipixel/reinforcement_learning_examples) to `/scripts/`.
-2. `launch` and `urdf` contains code for Sawyer robot. We plan to use OpenManipulator.
-3. `package.xml` should be updated appropriately.
-4. Get repository verified by a ROS expert.
-
-## Repository Structure
 
 ```
 + launch/         -
@@ -32,3 +25,9 @@ These are repositories checked to set this structure:
 - **urdf/** [http://wiki.ros.org/urdf](http://wiki.ros.org/urdf)
 - **CMakeLists.txt** [http://wiki.ros.org/catkin/CMakeLists.txt](http://wiki.ros.org/catkin/CMakeLists.txt)
 - **package.xml** [http://wiki.ros.org/catkin/package.xml](http://wiki.ros.org/catkin/package.xml)
+
+## TODO
+
+1. `launch` and `urdf` contains code for Sawyer robot. We plan to use OpenManipulator.
+2. `package.xml` should be updated appropriately.
+3. Get repository verified by a ROS expert.
