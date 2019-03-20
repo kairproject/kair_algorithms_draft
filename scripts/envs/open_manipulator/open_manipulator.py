@@ -313,11 +313,9 @@ class OpenManipulatorEnv():
         except rospy.ServiceException as e:
             rospy.loginfo("Delete Model service call failed: {0}".format(e))
 
-    def _load_target_block(self,
-                           block_pose=None,
-                           block_reference_frame="world"):
-        if block_pose is None:
-            block_pose = Pose(position=Point(x=0.6725, y=0.1265, z=0.7825))
+    def _load_target_block(self):
+        block_pose = Pose(position=Point(x=0.6725, y=0.1265, z=0.7825))  # noqa: F841
+        block_reference_frame = "world"
         # Get Models' Path
         model_path = rospkg.RosPack().get_path('kair_algorithms') + "/urdf/"
 
