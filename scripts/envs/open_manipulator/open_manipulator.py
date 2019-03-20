@@ -5,14 +5,23 @@ import time
 
 import rospy
 from cv_bridge import CvBridge
-from gazebo_msgs.srv import (DeleteModel, GetModelState,
-                             SpawnModel)
-
+from gazebo_msgs.srv import (
+    DeleteModel,
+    GetModelState,
+    SpawnModel,
+)
 # reads open_manipulator's state
-from geometry_msgs.msg import Point, Pose, Quaternion
-from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
+from geometry_msgs.msg import (
+    Point,
+    Pose,
+    Quaternion,
+)
+from open_manipulator_msgs.msg import (
+    KinematicsPose,
+    OpenManipulatorState,
+)
 from sensor_msgs.msg import JointState
-from std_msgs.msg import *
+from std_msgs.msg import Float64
 from tf import TransformListener
 
 import numpy as np
@@ -335,9 +344,9 @@ class OpenManipulatorEnv():
         the episode early.
         """
         _ee_pose = self.get_gripper_position()
-        if not ((X_MIN < _ee_pose[0] < X_MAX) and (
-                Y_MIN < _ee_pose[1] < Y_MAX) and (
-                        Z_MIN < _ee_pose[1] < Z_MAX)):
+        if not ((X_MIN < _ee_pose[0] < X_MAX) and
+                (Y_MIN < _ee_pose[1] < Y_MAX) and
+                (Z_MIN < _ee_pose[1] < Z_MAX)):
             self.termination_count += 1
         if self.termination_count == TERM_COUNT:
             self.done = True
