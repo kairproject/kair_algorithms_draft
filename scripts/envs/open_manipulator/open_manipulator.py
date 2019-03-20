@@ -318,7 +318,7 @@ class OpenManipulatorEnv():
         model_path = rospkg.RosPack().get_path('kair_algorithms') + "/urdf/"
 
         # Load Block URDF
-        # block_xml = ''
+        block_xml = ''
 
         with open(model_path + "block/model.urdf", "r") as block_file:
             block_xml = block_file.read().replace('\n', '')
@@ -339,14 +339,12 @@ class OpenManipulatorEnv():
             rospy.logerr("Spawn URDF service call failed: {0}".format(e))
 
     def _check_for_termination(self):
-        """
-        Check if the agent has reached undesirable state. If so, terminate
+        """Check if the agent has reached undesirable state. If so, terminate
         the episode early.
         """
         _ee_pose = self.get_gripper_position()
-        if not ((X_MIN < _ee_pose[0] < X_MAX) and
-                (Y_MIN < _ee_pose[1] < Y_MAX) and
-                (Z_MIN < _ee_pose[1] < Z_MAX)):
+        if not ((X_MIN < _ee_pose[0] < X_MAX) and (Y_MIN < _ee_pose[1] < Y_MAX) and (
+                Z_MIN < _ee_pose[1] < Z_MAX)):
             self.termination_count += 1
         if self.termination_count == TERM_COUNT:
             self.done = True
@@ -356,8 +354,7 @@ class OpenManipulatorEnv():
             return False
 
     def _check_for_success(self):
-        """
-        Check if the agent has succeeded the episode.
+        """Check if the agent has succeeded the episode.
         """
         _dist = self._get_dist()
         if _dist < self.distance_threshold:
@@ -388,7 +385,7 @@ class OpenManipulatorEnv():
             object_state = object_state_srv("block", "world")
             self._obj_pose = np.array(
                 [object_state.pose.position.x, object_state.pose.position.y,
-                 object_state.pose.position.z])
+                    object_state.pose.position.z])
         except rospy.ServiceException as e:
             rospy.logerr("Spawn URDF service call failed: {0}".format(e))
         _ee_pose = np.array(self.get_gripper_position())  # FK state of robot
