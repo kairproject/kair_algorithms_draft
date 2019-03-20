@@ -2,11 +2,19 @@
   <img src="https://user-images.githubusercontent.com/6107926/54689322-a0503500-4b62-11e9-87f7-aff03dbbb6dd.png" alt="KAIR"/>
 </p>
 
-[![Build Status](https://travis-ci.org/kairproject/kair_algorithms_draft.svg?branch=master)](https://travis-ci.org/kairproject/kair_algorithms_draft)
-[![google Docstring Style](https://img.shields.io/badge/docstring-google-blue.svg)](http://google.github.io/styleguide/pyguide.html)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-blue.svg)](.pre-commit-config.yaml)
 
-# KAIR Algorithms
+<p align="center">
+  <a href="https://travis-ci.org/kairproject/kair_algorithms_draft">
+    <img src="https://travis-ci.org/kairproject/kair_algorithms_draft.svg?branch=master" alt="Build Status"/>
+  </a>
+  <a href="http://google.github.io/styleguide/pyguide.html">
+    <img src="https://img.shields.io/badge/docstring-google-blue.svg" alt="Google Docstring style"/>
+  </a>
+  <a href=".pre-commit-config.yaml">
+    <img src="https://img.shields.io/badge/pre--commit-enabled-blue.svg" alt="Pre-commit enabled"/>
+  </a>
+</p>
+
 
 ## Research Repository Structure
 
