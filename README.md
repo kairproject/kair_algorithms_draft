@@ -15,6 +15,8 @@
   </a>
 </p>
 
+KAIR algorithm is a research repository with state of the art reinforcement learning algorithms for robot control tasks. It allows the researchers to experiment with novel ideas with minimal code changes.
+
 
 ## Research Repository Structure
 
