@@ -38,6 +38,16 @@ The [scripts](/scripts) folder contains implementations of a curated list of RL 
    - [Example Script of SACfD on LunarLander](/scripts/examples/lunarlander_continuous_v2/sacfd.py)
    - [ArXiv Preprint](https://arxiv.org/abs/1707.08817)
 
+## Installation
+
+To use the algorithms, first use the [requirements.txt](/scripts/requirements.txt) file to install appropriate Python packages from PyPI.
+
+```bash
+cd scripts
+pip install -r requirements.txt
+```
+
+
 ## How to Cite
 
 We are currently writing a white paper to summarize the results. We will add a BibTeX entry below once the paper is finalized.
