@@ -38,6 +38,10 @@ The [scripts](/scripts) folder contains implementations of a curated list of RL 
    - [Example Script of SACfD on LunarLander](/scripts/examples/lunarlander_continuous_v2/sacfd.py)
    - [ArXiv Preprint](https://arxiv.org/abs/1707.08817)
 
+## How to Cite
+
+We are currently writing a white paper to summarize the results. We will add a BibTeX entry below once the paper is finalized.
+
 ## Research Repository Structure
 
 We follow the `.git` strategy specified [here](https://answers.ros.org/question/257855/git-strategy-for-catkin-and-package-folders/), creating packages into separate repositories.
