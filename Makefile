@@ -2,7 +2,6 @@ test:
 	pytest --flake8  # --cov=algorithms
 
 format:
-	black .
 	isort -y
 
 dev:
