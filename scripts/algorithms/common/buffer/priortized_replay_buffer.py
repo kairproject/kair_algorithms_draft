@@ -67,11 +67,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.sum_tree[idx] = self._max_priority ** self.alpha
         self.min_tree[idx] = self._max_priority ** self.alpha
 
-    def extend(self, transitions: list):
+    def extend(self, transitions):
         """Add experiences to memory."""
         raise NotImplementedError
 
-    def _sample_proportional(self, batch_size: int) -> list:
+    def _sample_proportional(self, batch_size):
         """Sample indices based on proportional."""
         indices = []
         p_total = self.sum_tree.sum(0, len(self.buffer) - 1)
