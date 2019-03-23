@@ -98,9 +98,7 @@ class Agent(TD3Agent):
             torch.cat((next_states, next_actions), dim=-1)
         )
         target_values = torch.min(target_values1, target_values2)
-        target_values = (
-            rewards + (gamma * target_values * masks).detach()
-        )
+        target_values = rewards + (gamma * target_values * masks).detach()
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
@@ -182,7 +180,7 @@ class Agent(TD3Agent):
     def pretrain(self):
         """Pretraining steps."""
         pretrain_loss = list()
-        print("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
+        print ("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
         for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
             loss = self.update_model()
             pretrain_loss.append(loss)  # for logging

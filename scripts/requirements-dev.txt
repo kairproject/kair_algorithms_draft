@@ -2,6 +2,7 @@ pre-commit
 
 # formatting
 isort
+# black
 
 # testing
 flake8

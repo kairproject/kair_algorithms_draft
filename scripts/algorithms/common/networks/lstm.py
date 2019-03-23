@@ -5,9 +5,6 @@
 - Contact: whikwon@gmail.com
 """
 
-from typing import Callable
-
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -30,13 +27,13 @@ class LSTM(nn.Module):
 
     def __init__(
         self,
-        input_size: int,
-        output_size: int,
-        hidden_sizes: list,
-        hidden_activation: Callable = F.relu,
-        output_activation: Callable = identity,
-        use_output_layer: bool = True,
-        init_w: float = 3e-3,
+        input_size,
+        output_size,
+        hidden_sizes,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        use_output_layer=True,
+        init_w=3e-3,
     ):
         """Initialization.
 
@@ -59,7 +56,7 @@ class LSTM(nn.Module):
         self.output_activation = output_activation
         self.use_output_layer = use_output_layer
 
-        self.hidden_layers: list = []
+        self.hidden_layers = []
         in_size = self.input_size
         for i, next_size in enumerate(hidden_sizes):
             lstm = nn.LSTM(in_size, next_size, batch_first=True)
@@ -73,14 +70,14 @@ class LSTM(nn.Module):
             self.output_layer.weight.data.uniform_(-init_w, init_w)
             self.output_layer.bias.data.uniform_(-init_w, init_w)
 
-    def get_last_activation(self, x: torch.Tensor) -> torch.Tensor:
+    def get_last_activation(self, x):
         """Get the activation of the last hidden layer."""
         for hidden_layer in self.hidden_layers:
             x, _ = hidden_layer(x)
             x = self.hidden_activation(x)
         return x
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         """Forward method implementation."""
         assert self.use_output_layer
 

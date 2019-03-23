@@ -5,7 +5,6 @@
 - Contact: curt.park@medipixel.io
 """
 
-import argparse
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
@@ -78,7 +77,7 @@ class AbstractAgent:
         path = os.path.join("./save/" + save_name + "_ep_" + str(n_episode) + ".pt")
         torch.save(params, path)
 
-        print("[INFO] Saved the model and optimizer to", path)
+        print ("[INFO] Saved the model and optimizer to", path)
 
     @abstractmethod
     def write_log(self, *args):
@@ -107,7 +106,7 @@ class AbstractAgent:
                 score += reward
                 step += 1
 
-            print(
+            print (
                 "[INFO] episode %d\tstep: %d\ttotal score: %d"
                 % (i_episode, step, score)
             )

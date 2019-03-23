@@ -13,13 +13,7 @@ class GaussianNoise:
     Taken from https://github.com/vitchyr/rlkit
     """
 
-    def __init__(
-        self,
-        action_dim,
-        min_sigma = 1.0,
-        max_sigma = 1.0,
-        decay_period = 1000000,
-    ):
+    def __init__(self, action_dim, min_sigma=1.0, max_sigma=1.0, decay_period=1000000):
         """Initialization."""
         self.action_dim = action_dim
         self.min_sigma = min_sigma

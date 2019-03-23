@@ -62,7 +62,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """Add experience and priority."""
         idx = self.tree_idx
         self.tree_idx = (self.tree_idx + 1) % self.buffer_size
-        super(PrioritizedReplayBuffer, self).add(state, action, reward, next_state, done)
+        super(PrioritizedReplayBuffer, self).add(
+            state, action, reward, next_state, done
+        )
 
         self.sum_tree[idx] = self._max_priority ** self.alpha
         self.min_tree[idx] = self._max_priority ** self.alpha
@@ -174,7 +176,9 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
             self.tree_idx = self.demo_size
         else:
             self.tree_idx = self.tree_idx + 1
-        super(PrioritizedReplayBuffer, self).add(state, action, reward, next_state, done)
+        super(PrioritizedReplayBuffer, self).add(
+            state, action, reward, next_state, done
+        )
 
         self.sum_tree[idx] = self._max_priority ** self.alpha
         self.min_tree[idx] = self._max_priority ** self.alpha

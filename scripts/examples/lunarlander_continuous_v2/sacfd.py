@@ -5,9 +5,6 @@
 - Contact: curt.park@medipixel.io
 """
 
-import argparse
-
-import gym
 import numpy as np
 import torch
 import torch.optim as optim

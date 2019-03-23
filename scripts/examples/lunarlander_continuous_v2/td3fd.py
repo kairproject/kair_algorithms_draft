@@ -5,9 +5,6 @@
 - Contact: seungjaeryanlee@gmail.com
 """
 
-import argparse
-
-import gym
 import torch
 import torch.optim as optim
 
