@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Run module for SAC on Reacher-v2.
+"""Run module for SAC on Reacher-v1.
 
 - Author: Curt Park
 - Contact: curt.park@medipixel.io
