@@ -16,7 +16,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # hyper parameters
 hyper_params = {
-    "GAMMA": 0.95,
+    "GAMMA": 0.99,
     "TAU": 5e-3,
     "BUFFER_SIZE": int(1e6),
     "BATCH_SIZE": 100,
