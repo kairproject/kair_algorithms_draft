@@ -7,10 +7,10 @@ format:
 
 dev:
 	pip install -r scripts/requirements-dev.txt
-	sudo add-apt-repository ppa:deadsnakes/ppa -y
+	sudo add-apt-repository -y ppa:deadsnakes/ppa
 	sudo apt-get update
-	sudo apt-get install python3.6 -y
-	sudo apt-get install python3-pip -y
+	sudo apt-get install -y python3.6
+	sudo apt-get install -y python3-pip
 	python3.6 -m pip install black
 	pre-commit install
 

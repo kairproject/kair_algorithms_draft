@@ -52,7 +52,7 @@ class AbstractAgent:
         )
 
     @abstractmethod
-    def select_action(self, stat):
+    def select_action(self, state):
         pass
 
     @abstractmethod
