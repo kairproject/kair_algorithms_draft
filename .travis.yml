@@ -11,6 +11,9 @@ install:
     - sudo apt-get install python3.6 -y
     - sudo apt-get install python3-pip -y
     - alias python3='/usr/bin/python3.6'
+    - . ~/.bashrc
+    - python3 -V
+    - python3.6 -V
     - make dep
     - make dev
 
