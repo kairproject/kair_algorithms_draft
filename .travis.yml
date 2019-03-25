@@ -6,20 +6,9 @@ python:
     - "2.7"
 
 install:
-    - sudo add-apt-repository ppa:deadsnakes/ppa -y
-    - sudo apt-get update
-    - sudo apt-get install python3.6 -y
-    - sudo apt-get install python3-pip -y
-    - alias python3='/usr/bin/python3.6'
-    - . ~/.bashrc
     - make dep
     - make dev
 
 script:
     # run static analysis and format check
-    - python3 -V
-    - python3.6 -V
-    - python3 -m pip -V
-    - python3.6 -m pip -V
-    - python3 -m pip install black
     - make test
