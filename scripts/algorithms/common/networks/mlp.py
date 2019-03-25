@@ -5,8 +5,6 @@
 - Contact: kh.kim@medipixel.io
 """
 
-from typing import Callable, Tuple
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -31,13 +29,13 @@ class MLP(nn.Module):
 
     def __init__(
         self,
-        input_size: int,
-        output_size: int,
-        hidden_sizes: list,
-        hidden_activation: Callable = F.relu,
-        output_activation: Callable = identity,
-        use_output_layer: bool = True,
-        init_w: float = 3e-3,
+        input_size,
+        output_size,
+        hidden_sizes,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        use_output_layer=True,
+        init_w=3e-3,
     ):
         """Initialization.
 
@@ -61,7 +59,7 @@ class MLP(nn.Module):
         self.use_output_layer = use_output_layer
 
         # set hidden layers
-        self.hidden_layers: list = []
+        self.hidden_layers = []
         in_size = self.input_size
         for i, next_size in enumerate(hidden_sizes):
             fc = nn.Linear(in_size, next_size)
@@ -75,13 +73,13 @@ class MLP(nn.Module):
             self.output_layer.weight.data.uniform_(-init_w, init_w)
             self.output_layer.bias.data.uniform_(-init_w, init_w)
 
-    def get_last_activation(self, x: torch.Tensor) -> torch.Tensor:
+    def get_last_activation(self, x):
         """Get the activation of the last hidden layer."""
         for hidden_layer in self.hidden_layers:
             x = self.hidden_activation(hidden_layer(x))
         return x
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         """Forward method implementation."""
         assert self.use_output_layer
 
@@ -96,7 +94,7 @@ class MLP(nn.Module):
 class FlattenMLP(MLP):
     """Baseline of Multilayer perceptron for Flatten input."""
 
-    def forward(self, *args: torch.Tensor) -> torch.Tensor:
+    def forward(self, *args):
         """Forward method implementation."""
         states, actions = args
         flat_inputs = torch.cat((states, actions), dim=-1)
@@ -116,14 +114,14 @@ class GaussianDist(MLP):
 
     def __init__(
         self,
-        input_size: int,
-        output_size: int,
-        hidden_sizes: list,
-        hidden_activation: Callable = F.relu,
-        mu_activation: Callable = torch.tanh,
-        log_std_min: float = -20,
-        log_std_max: float = 2,
-        init_w: float = 3e-3,
+        input_size,
+        output_size,
+        hidden_sizes,
+        hidden_activation=F.relu,
+        mu_activation=torch.tanh,
+        log_std_min=-20,
+        log_std_max=2,
+        init_w=3e-3,
     ):
         """Initialization."""
         super(GaussianDist, self).__init__(
@@ -149,7 +147,7 @@ class GaussianDist(MLP):
         self.mu_layer.weight.data.uniform_(-init_w, init_w)
         self.mu_layer.bias.data.uniform_(-init_w, init_w)
 
-    def get_dist_params(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def get_dist_params(self, x):
         """Return gausian distribution parameters."""
         hidden = super(GaussianDist, self).get_last_activation(x)
 
@@ -165,7 +163,7 @@ class GaussianDist(MLP):
 
         return mu, log_std, std
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def forward(self, x):
         """Forward method implementation."""
         mu, _, std = self.get_dist_params(x)
 
@@ -181,11 +179,9 @@ class TanhGaussianDistParams(GaussianDist):
 
     def __init__(self, **kwargs):
         """Initialization."""
-        super(TanhGaussianDistParams, self).__init__(**kwargs, mu_activation=identity)
+        super(TanhGaussianDistParams, self).__init__(mu_activation=identity, **kwargs)
 
-    def forward(
-        self, x: torch.Tensor, epsilon: float = 1e-6
-    ) -> Tuple[torch.Tensor, ...]:
+    def forward(self, x, epsilon=1e-6):
         """Forward method implementation."""
         mu, _, std = super(TanhGaussianDistParams, self).get_dist_params(x)
 

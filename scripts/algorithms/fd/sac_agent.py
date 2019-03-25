@@ -10,7 +10,6 @@
 """
 
 import pickle
-from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -39,6 +38,8 @@ class Agent(SACAgent):
 
         if not self.args.test:
             # load demo replay memory
+            # TODO: should make new demo to set protocol 2
+            #       e.g. pickle.dump(your_object, your_file, protocol=2)
             with open(self.args.demo_path, "rb") as f:
                 demos = pickle.load(f)
 
@@ -65,7 +66,7 @@ class Agent(SACAgent):
                 epsilon_d=self.hyper_params["PER_EPS_DEMO"],
             )
 
-    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+    def _add_transition_to_memory(self, transition):
         """Add 1 step and n step transitions to memory."""
         # add n-step transition
         if self.use_n_step:
@@ -77,19 +78,7 @@ class Agent(SACAgent):
             self.memory.add(*transition)
 
     # pylint: disable=too-many-statements
-    def update_model(
-        self,
-        experiences: Tuple[
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            List[int],
-        ],
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_model(self, experiences):
         """Train the model after each episode."""
         states, actions, rewards, next_states, dones, weights, indices, eps_d = (
             experiences
@@ -212,7 +201,7 @@ class Agent(SACAgent):
     def pretrain(self):
         """Pretraining steps."""
         pretrain_loss = list()
-        print("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
+        print ("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
         for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
             loss = self.update_model()
             pretrain_loss.append(loss)  # for logging

@@ -5,9 +5,6 @@
 - Contact: curt.park@medipixel.io
 """
 
-import argparse
-
-import gym
 import numpy as np
 import torch
 import torch.optim as optim
@@ -39,7 +36,7 @@ hyper_params = {
 }
 
 
-def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int):
+def run(env, args, state_dim, action_dim):
     """Run training or test.
 
     Args:

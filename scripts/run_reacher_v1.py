@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Train or test algorithms on Reacher-v2 of Mujoco.
+"""Train or test algorithms on Reacher-v1 of Mujoco.
 
 - Author: Kh Kim
 - Contact: kh.kim@medipixel.io
@@ -53,7 +53,7 @@ args = parser.parse_args()
 def main():
     """Main."""
     # env initialization
-    env = gym.make("Reacher-v2")
+    env = gym.make("Reacher-v1")
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -61,7 +61,7 @@ def main():
     common_utils.set_random_seed(args.seed, env)
 
     # run
-    module_path = "examples.reacher-v2." + args.algo
+    module_path = "examples.reacher-v1." + args.algo
     example = importlib.import_module(module_path)
     example.run(env, args, state_dim, action_dim)
 

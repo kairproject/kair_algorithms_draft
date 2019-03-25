@@ -9,7 +9,6 @@
 """
 
 import pickle
-from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -38,6 +37,8 @@ class Agent(TD3Agent):
 
         if not self.args.test:
             # load demo replay memory
+            # TODO: should make new demo to set protocol 2
+            #       e.g. pickle.dump(your_object, your_file, protocol=2)
             with open(self.args.demo_path, "rb") as f:
                 demos = pickle.load(f)
 
@@ -64,7 +65,7 @@ class Agent(TD3Agent):
                 epsilon_d=self.hyper_params["PER_EPS_DEMO"],
             )
 
-    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+    def _add_transition_to_memory(self, transition):
         """Add 1 step and n step transitions to memory."""
         # add n-step transition
         if self.use_n_step:
@@ -75,9 +76,7 @@ class Agent(TD3Agent):
         if transition:
             self.memory.add(*transition)
 
-    def _get_critic_loss(
-        self, experiences: Tuple[torch.Tensor, ...], gamma: float
-    ) -> torch.Tensor:
+    def _get_critic_loss(self, experiences, gamma):
         """Return element-wise critic loss."""
         states, actions, rewards, next_states, dones = experiences[:5]
 
@@ -99,9 +98,7 @@ class Agent(TD3Agent):
             torch.cat((next_states, next_actions), dim=-1)
         )
         target_values = torch.min(target_values1, target_values2)
-        target_values = (
-            rewards + (self.hyper_params["GAMMA"] * target_values * masks).detach()
-        )
+        target_values = rewards + (gamma * target_values * masks).detach()
 
         # train critic
         values1 = self.critic1(torch.cat((states, actions), dim=-1))
@@ -113,19 +110,7 @@ class Agent(TD3Agent):
         return critic1_loss_element_wise, critic2_loss_element_wise
 
     # pylint: disable=too-many-statements
-    def update_model(
-        self,
-        experiences: Tuple[
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            torch.Tensor,
-            List[int],
-        ],
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_model(self, experiences):
         """Train the model after each episode."""
         states, actions, rewards, next_states, dones, weights, indices, eps_d = (
             experiences
@@ -195,7 +180,7 @@ class Agent(TD3Agent):
     def pretrain(self):
         """Pretraining steps."""
         pretrain_loss = list()
-        print("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
+        print ("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
         for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
             loss = self.update_model()
             pretrain_loss.append(loss)  # for logging

@@ -2,7 +2,6 @@
 """Segment tree for Proirtized Replay Buffer."""
 
 import operator
-from typing import Callable
 
 
 class SegmentTree:
@@ -18,7 +17,7 @@ class SegmentTree:
 
     """
 
-    def __init__(self, capacity: int, operation: Callable, init_value: float):
+    def __init__(self, capacity, operation, init_value):
         """Initialization.
 
         Args:
@@ -34,9 +33,7 @@ class SegmentTree:
         self.tree = [init_value for _ in range(2 * capacity)]
         self.operation = operation
 
-    def _operate_helper(
-        self, start: int, end: int, node: int, node_start: int, node_end: int
-    ) -> float:
+    def _operate_helper(self, start, end, node, node_start, node_end):
         """Returns result of operation in segment."""
         if start == node_start and end == node_end:
             return self.tree[node]
@@ -52,7 +49,7 @@ class SegmentTree:
                     self._operate_helper(mid + 1, end, 2 * node + 1, mid + 1, node_end),
                 )
 
-    def operate(self, start: int = 0, end: int = 0) -> float:
+    def operate(self, start=0, end=0):
         """Returns result of applying `self.operation`."""
         if end <= 0:
             end += self.capacity
@@ -60,7 +57,7 @@ class SegmentTree:
 
         return self._operate_helper(start, end, 1, 0, self.capacity - 1)
 
-    def __setitem__(self, idx: int, val: float):
+    def __setitem__(self, idx, val):
         """Set value in tree."""
         idx += self.capacity
         self.tree[idx] = val
@@ -70,7 +67,7 @@ class SegmentTree:
             self.tree[idx] = self.operation(self.tree[2 * idx], self.tree[2 * idx + 1])
             idx //= 2
 
-    def __getitem__(self, idx: int) -> float:
+    def __getitem__(self, idx):
         """Get real value in leaf node of tree."""
         assert 0 <= idx < self.capacity
 
@@ -85,7 +82,7 @@ class SumSegmentTree(SegmentTree):
 
     """
 
-    def __init__(self, capacity: int):
+    def __init__(self, capacity):
         """Initialization.
 
         Args:
@@ -96,11 +93,11 @@ class SumSegmentTree(SegmentTree):
             capacity=capacity, operation=operator.add, init_value=0.0
         )
 
-    def sum(self, start: int = 0, end: int = 0) -> float:
+    def sum(self, start=0, end=0):
         """Returns arr[start] + ... + arr[end]."""
         return super(SumSegmentTree, self).operate(start, end)
 
-    def retrieve(self, upperbound: float) -> int:
+    def retrieve(self, upperbound):
         """Find the highest index `i` about upper bound in the tree"""
         assert 0 <= upperbound <= self.sum() + 1e-5
 
@@ -125,7 +122,7 @@ class MinSegmentTree(SegmentTree):
 
     """
 
-    def __init__(self, capacity: int):
+    def __init__(self, capacity):
         """Initialization.
 
         Args:
@@ -136,6 +133,6 @@ class MinSegmentTree(SegmentTree):
             capacity=capacity, operation=min, init_value=float("inf")
         )
 
-    def min(self, start: int = 0, end: int = 0) -> float:
+    def min(self, start=0, end=0):
         """Returns min(arr[start], ...,  arr[end])."""
         return super(MinSegmentTree, self).operate(start, end)

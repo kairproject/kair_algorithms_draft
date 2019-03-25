@@ -6,11 +6,8 @@
 - Paper: https://arxiv.org/pdf/1802.09477.pdf
 """
 
-import argparse
 import os
-from typing import Tuple
 
-import gym
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -44,15 +41,7 @@ class Agent(AbstractAgent):
 
     """
 
-    def __init__(
-        self,
-        env: gym.Env,
-        args: argparse.Namespace,
-        hyper_params: dict,
-        models: tuple,
-        optims: tuple,
-        noises: tuple,
-    ):
+    def __init__(self, env, args, hyper_params, models, optims, noises):
         """Initialization.
 
         Args:
@@ -90,7 +79,7 @@ class Agent(AbstractAgent):
                 self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
             )
 
-    def select_action(self, state: np.ndarray) -> np.ndarray:
+    def select_action(self, state):
         """Select an action from the input space."""
         # initial training step, try random action for exploration
         random_action_count = self.hyper_params["INITIAL_RANDOM_ACTIONS"]
@@ -109,7 +98,7 @@ class Agent(AbstractAgent):
 
         return selected_action.detach().cpu().numpy()
 
-    def step(self, action: torch.Tensor) -> Tuple[np.ndarray, np.float64, bool]:
+    def step(self, action):
         """Take an action and return the response of the env."""
         self.total_steps += 1
         self.episode_steps += 1
@@ -126,16 +115,11 @@ class Agent(AbstractAgent):
 
         return next_state, reward, done
 
-    def _add_transition_to_memory(self, transition: Tuple[np.ndarray, ...]):
+    def _add_transition_to_memory(self, transition):
         """Add 1 step and n step transitions to memory."""
         self.memory.add(*transition)
 
-    def update_model(
-        self,
-        experiences: Tuple[
-            torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
-        ],
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_model(self, experiences):
         """Train the model after each episode."""
         states, actions, rewards, next_states, dones = experiences
 
@@ -190,10 +174,10 @@ class Agent(AbstractAgent):
 
         return actor_loss.data, critic1_loss.data, critic2_loss.data
 
-    def load_params(self, path: str):
+    def load_params(self, path):
         """Load model and optimizer parameters."""
         if not os.path.exists(path):
-            print("[ERROR] the input path does not exist. ->", path)
+            print ("[ERROR] the input path does not exist. ->", path)
             return
 
         params = torch.load(path)
@@ -205,9 +189,9 @@ class Agent(AbstractAgent):
         self.critic2_target.load_state_dict(params["critic2_target_state_dict"])
         self.actor_optim.load_state_dict(params["actor_optim_state_dict"])
         self.critic_optim.load_state_dict(params["critic_optim_state_dict"])
-        print("[INFO] loaded the model and optimizer from", path)
+        print ("[INFO] loaded the model and optimizer from", path)
 
-    def save_params(self, n_episode: int):
+    def save_params(self, n_episode):
         """Save model and optimizer parameters."""
         params = {
             "actor_state_dict": self.actor.state_dict(),
@@ -222,11 +206,11 @@ class Agent(AbstractAgent):
 
         AbstractAgent.save_params(self, params, n_episode)
 
-    def write_log(self, i: int, loss: np.ndarray, score: int):
+    def write_log(self, i, loss, score):
         """Write log about loss and score"""
         total_loss = loss.sum()
 
-        print(
+        print (
             "[INFO] total_steps: %d episode: %d total score: %d, total loss: %f\n"
             "actor_loss: %.3f critic1_loss: %.3f critic2_loss: %.3f\n"
             % (self.total_steps, i, score, total_loss, loss[0], loss[1], loss[2])
