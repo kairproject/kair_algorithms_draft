@@ -7,7 +7,6 @@ format:
 
 dev:
 	pip install -r scripts/requirements-dev.txt
-	python3 -m pip install setuptools
 	python3 -m pip install black
 	pre-commit install
 
