@@ -11,7 +11,7 @@ dev:
 	sudo apt-get update
 	sudo apt-get install python3.6 -y
 	sudo apt-get install python3-pip -y
-	python3 -m pip install black
+	python3.6 -m pip install black
 	pre-commit install
 
 dep:
