@@ -9,6 +9,10 @@ install:
     - sudo add-apt-repository ppa:deadsnakes/ppa -y
     - sudo apt-get update
     - sudo apt-get install python3.6 -y
+    - wget https://bootstrap.pypa.io/get-pip.py
+    - sudo python3.6 get-pip.py
+    - sudo ln -s /usr/bin/python3.6 /usr/local/bin/python3
+    - sudo ln -s /usr/local/bin/pip /usr/local/bin/pip3
     - make dep
     - make dev
 
