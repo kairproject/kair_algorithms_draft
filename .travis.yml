@@ -19,4 +19,6 @@ install:
 script:
     # run static analysis and format check
     - python3 -V
+    - pip3 -V
+    - pip3 install black
     - make test
