@@ -12,11 +12,14 @@ install:
     - sudo apt-get install python3-pip -y
     - alias python3='/usr/bin/python3.6'
     - . ~/.bashrc
-    - python3 -V
-    - python3.6 -V
     - make dep
     - make dev
 
 script:
     # run static analysis and format check
+    - python3 -V
+    - python3.6 -V
+    - python3 -m pip -V
+    - python3.6 -m pip -V
+    - python3 -m pip install black
     - make test
