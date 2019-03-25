@@ -5,18 +5,16 @@
 - Contact: curt.park@medipixel.io
 """
 
-import argparse
 import os
 import subprocess
-from abc import ABC, abstractmethod
-from typing import Tuple
+from abc import ABCMeta, abstractmethod
 
 import gym
 import numpy as np
 import torch
 
 
-class AbstractAgent(ABC):
+class AbstractAgent:
     """Abstract Agent used for all agents.
 
     Attributes:
@@ -27,7 +25,9 @@ class AbstractAgent(ABC):
 
     """
 
-    def __init__(self, env: gym.Env, args: argparse.Namespace):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, env, args):
         """Initialization.
 
         Args:
@@ -52,11 +52,11 @@ class AbstractAgent(ABC):
         )
 
     @abstractmethod
-    def select_action(self, state: np.ndarray):
+    def select_action(self, state):
         pass
 
     @abstractmethod
-    def step(self, action: torch.Tensor) -> Tuple[np.ndarray, np.float64, bool]:
+    def step(self, action):
         pass
 
     @abstractmethod
@@ -68,7 +68,7 @@ class AbstractAgent(ABC):
         pass
 
     @abstractmethod
-    def save_params(self, params: dict, n_episode: int):
+    def save_params(self, params, n_episode):
         if not os.path.exists("./save"):
             os.mkdir("./save")
 
@@ -77,7 +77,7 @@ class AbstractAgent(ABC):
         path = os.path.join("./save/" + save_name + "_ep_" + str(n_episode) + ".pt")
         torch.save(params, path)
 
-        print("[INFO] Saved the model and optimizer to", path)
+        print ("[INFO] Saved the model and optimizer to", path)
 
     @abstractmethod
     def write_log(self, *args):
@@ -106,7 +106,7 @@ class AbstractAgent(ABC):
                 score += reward
                 step += 1
 
-            print(
+            print (
                 "[INFO] episode %d\tstep: %d\ttotal score: %d"
                 % (i_episode, step, score)
             )
@@ -118,7 +118,7 @@ class AbstractAgent(ABC):
 class NormalizedActions(gym.ActionWrapper):
     """Rescale and relocate the actions."""
 
-    def action(self, action: np.ndarray) -> np.ndarray:
+    def action(self, action):
         """Change the range (-1, 1) to (low, high)."""
         low = self.action_space.low
         high = self.action_space.high
@@ -131,7 +131,7 @@ class NormalizedActions(gym.ActionWrapper):
 
         return action
 
-    def reverse_action(self, action: np.ndarray) -> np.ndarray:
+    def reverse_action(self, action):
         """Change the range (low, high) to (-1, 1)."""
         low = self.action_space.low
         high = self.action_space.high

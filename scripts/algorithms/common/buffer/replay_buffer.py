@@ -2,7 +2,6 @@
 """Replay buffer for baselines."""
 
 from collections import deque
-from typing import Any, Deque, List, Tuple
 
 import numpy as np
 import torch
@@ -25,7 +24,7 @@ class ReplayBuffer:
 
     """
 
-    def __init__(self, buffer_size: int, batch_size: int):
+    def __init__(self, buffer_size, batch_size):
         """Initialize a ReplayBuffer object.
 
         Args:
@@ -33,19 +32,12 @@ class ReplayBuffer:
             batch_size (int): size of a batched sampled from replay buffer for training
 
         """
-        self.buffer: list = list()
+        self.buffer = list()
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self.idx = 0
 
-    def add(
-        self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.float64,
-        next_state: np.ndarray,
-        done: bool,
-    ):
+    def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
         data = (state, action, reward, next_state, done)
 
@@ -55,14 +47,12 @@ class ReplayBuffer:
         else:
             self.buffer.append(data)
 
-    def extend(self, transitions: list):
+    def extend(self, transitions):
         """Add experiences to memory."""
         for transition in transitions:
             self.add(*transition)
 
-    def sample(
-        self
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def sample(self):
         """Randomly sample a batch of experiences from memory."""
         idxs = np.random.choice(len(self.buffer), size=self.batch_size, replace=False)
 
@@ -84,7 +74,7 @@ class ReplayBuffer:
 
         return states, actions, rewards, next_states, dones
 
-    def __len__(self) -> int:
+    def __len__(self):
         """Return the current size of internal memory."""
         return len(self.buffer)
 
@@ -100,7 +90,7 @@ class NStepTransitionBuffer:
 
     """
 
-    def __init__(self, buffer_size: int, n_step: int, gamma: float, demo: list = None):
+    def __init__(self, buffer_size, n_step, gamma, demo=None):
         """Initialize a ReplayBuffer object.
 
         Args:
@@ -110,9 +100,9 @@ class NStepTransitionBuffer:
         """
         assert buffer_size > 0
 
-        self.n_step_buffer: Deque = deque(maxlen=n_step)
+        self.n_step_buffer = deque(maxlen=n_step)
         self.buffer_size = buffer_size
-        self.buffer: list = list()
+        self.buffer = list()
         self.n_step = n_step
         self.gamma = gamma
         self.demo_size = 0
@@ -125,7 +115,7 @@ class NStepTransitionBuffer:
 
         self.buffer.extend([None] * self.buffer_size)
 
-    def add(self, transition: Tuple[np.ndarray, ...]) -> Tuple[Any, ...]:
+    def add(self, transition):
         """Add a new transition to memory."""
         self.n_step_buffer.append(transition)
 
@@ -146,7 +136,7 @@ class NStepTransitionBuffer:
         # return a single step transition to insert to replay buffer
         return self.n_step_buffer[0]
 
-    def sample(self, indices: List[int]) -> Tuple[torch.Tensor, ...]:
+    def sample(self, indices):
         """Randomly sample a batch of experiences from memory."""
         states, actions, rewards, next_states, dones = [], [], [], [], []
 

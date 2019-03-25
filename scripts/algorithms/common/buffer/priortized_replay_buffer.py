@@ -8,7 +8,6 @@
 """
 
 import random
-from typing import Tuple
 
 import numpy as np
 import torch
@@ -35,7 +34,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         """
 
-    def __init__(self, buffer_size: int, batch_size: int, alpha: float = 0.6):
+    def __init__(self, buffer_size, batch_size, alpha=0.6):
         """Initialization.
 
         Args:
@@ -59,27 +58,22 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.min_tree = MinSegmentTree(tree_capacity)
         self._max_priority = 1.0
 
-    def add(
-        self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.float64,
-        next_state: np.ndarray,
-        done: bool,
-    ):
+    def add(self, state, action, reward, next_state, done):
         """Add experience and priority."""
         idx = self.tree_idx
         self.tree_idx = (self.tree_idx + 1) % self.buffer_size
-        super().add(state, action, reward, next_state, done)
+        super(PrioritizedReplayBuffer, self).add(
+            state, action, reward, next_state, done
+        )
 
         self.sum_tree[idx] = self._max_priority ** self.alpha
         self.min_tree[idx] = self._max_priority ** self.alpha
 
-    def extend(self, transitions: list):
+    def extend(self, transitions):
         """Add experiences to memory."""
         raise NotImplementedError
 
-    def _sample_proportional(self, batch_size: int) -> list:
+    def _sample_proportional(self, batch_size):
         """Sample indices based on proportional."""
         indices = []
         p_total = self.sum_tree.sum(0, len(self.buffer) - 1)
@@ -92,7 +86,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             indices.append(idx)
         return indices
 
-    def sample(self, beta: float = 0.4) -> Tuple[torch.Tensor, ...]:
+    def sample(self, beta=0.4):
         """Sample a batch of experiences."""
         assert beta > 0
 
@@ -127,7 +121,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         return experiences
 
-    def update_priorities(self, indices: list, priorities: np.ndarray):
+    def update_priorities(self, indices, priorities):
         """Update priorities of sampled transitions."""
         assert len(indices) == len(priorities)
 
@@ -153,14 +147,7 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
         epsilon_d (float) : epsilon_d parameter to update priority using demo
         """
 
-    def __init__(
-        self,
-        buffer_size: int,
-        batch_size: int,
-        demo: list,
-        alpha: float = 0.6,
-        epsilon_d: float = 1.0,
-    ):
+    def __init__(self, buffer_size, batch_size, demo, alpha=0.6, epsilon_d=1.0):
         """Initialization.
         Args:
             buffer_size (int): size of replay buffer for experience
@@ -181,14 +168,7 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
             self.min_tree[self.tree_idx] = self._max_priority ** self.alpha
             self.tree_idx += 1
 
-    def add(
-        self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.float64,
-        next_state: np.ndarray,
-        done: bool,
-    ):
+    def add(self, state, action, reward, next_state, done):
         """Add experience and priority."""
         idx = self.tree_idx
         # buffer is full
@@ -196,7 +176,9 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
             self.tree_idx = self.demo_size
         else:
             self.tree_idx = self.tree_idx + 1
-        super().add(state, action, reward, next_state, done)
+        super(PrioritizedReplayBuffer, self).add(
+            state, action, reward, next_state, done
+        )
 
         self.sum_tree[idx] = self._max_priority ** self.alpha
         self.min_tree[idx] = self._max_priority ** self.alpha
@@ -204,7 +186,7 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
         # update current total size
         self.total_size = self.demo_size + len(self.buffer)
 
-    def sample(self, beta: float = 0.4) -> Tuple[torch.Tensor, ...]:
+    def sample(self, beta=0.4):
         """Sample a batch of experiences."""
         assert beta > 0
 
@@ -266,7 +248,7 @@ class PrioritizedReplayBufferfD(PrioritizedReplayBuffer):
 
         return experiences
 
-    def update_priorities(self, indices: list, priorities: np.ndarray):
+    def update_priorities(self, indices, priorities):
         """Update priorities of sampled transitions."""
         assert len(indices) == len(priorities)
 

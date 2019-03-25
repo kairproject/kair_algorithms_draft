@@ -114,7 +114,7 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-        print(f"[epoch: {i}] loss: {loss}")
+        print ("[epoch: %d] loss: %f" % i, loss)
 
     # eval
     eval_data = generate_wave_data(x_range, input_wave_nm, True, num_test_waves)

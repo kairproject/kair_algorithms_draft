@@ -5,9 +5,6 @@
 - Contact: whikwon@gmail.com
 """
 
-import argparse
-
-import gym
 import torch
 import torch.optim as optim
 
@@ -34,7 +31,7 @@ hyper_params = {
 }
 
 
-def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int):
+def run(env, args, state_dim, action_dim):
     """Run training or test.
 
     Args:

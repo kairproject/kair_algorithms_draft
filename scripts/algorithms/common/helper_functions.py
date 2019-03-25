@@ -7,28 +7,25 @@
 
 import random
 from collections import deque
-from typing import Deque, List, Tuple
 
-import gym
 import numpy as np
 import torch
-import torch.nn as nn
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def identity(x: torch.Tensor) -> torch.Tensor:
+def identity(x):
     """Return input without any change."""
     return x
 
 
-def soft_update(local: nn.Module, target: nn.Module, tau: float):
+def soft_update(local, target, tau):
     """Soft-update: target = tau*local + (1-tau)*target."""
     for t_param, l_param in zip(target.parameters(), local.parameters()):
         t_param.data.copy_(tau * l_param.data + (1.0 - tau) * t_param.data)
 
 
-def set_random_seed(seed: int, env: gym.Env):
+def set_random_seed(seed, env):
     """Set random seed"""
     env.seed(seed)
     torch.manual_seed(seed)
@@ -36,16 +33,14 @@ def set_random_seed(seed: int, env: gym.Env):
     random.seed(seed)
 
 
-def get_n_step_info_from_demo(
-    demo: List, n_step: int, gamma: float
-) -> Tuple[List, List]:
+def get_n_step_info_from_demo(demo, n_step, gamma):
     """Return 1 step and n step demos."""
     assert demo
     assert n_step > 1
 
     demos_1_step = list()
     demos_n_step = list()
-    n_step_buffer: Deque = deque(maxlen=n_step)
+    n_step_buffer = deque(maxlen=n_step)
 
     for transition in demo:
         n_step_buffer.append(transition)
@@ -63,9 +58,7 @@ def get_n_step_info_from_demo(
     return demos_1_step, demos_n_step
 
 
-def get_n_step_info(
-    n_step_buffer: Deque, gamma: float
-) -> Tuple[np.int64, np.ndarray, bool]:
+def get_n_step_info(n_step_buffer, gamma):
     """Return n step reward, next state, and done."""
     # info of the last transition
     reward, next_state, done = n_step_buffer[-1][-3:]

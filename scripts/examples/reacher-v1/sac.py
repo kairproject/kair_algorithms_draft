@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Run module for SACfD on LunarLanderContinuous-v2.
+"""Run module for SAC on Reacher-v1.
 
 - Author: Curt Park
 - Contact: curt.park@medipixel.io
 """
 
-import argparse
-
-import gym
 import numpy as np
 import torch
 import torch.optim as optim
 
 from algorithms.common.networks.mlp import MLP, FlattenMLP, TanhGaussianDistParams
-from algorithms.fd.sac_agent import Agent
+from algorithms.sac.agent import Agent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -29,26 +26,18 @@ hyper_params = {
     "LR_VF": 3e-4,
     "LR_QF1": 3e-4,
     "LR_QF2": 3e-4,
-    "LR_ENTROPY": 3e-4,
     "W_ENTROPY": 1e-3,
     "W_MEAN_REG": 1e-3,
     "W_STD_REG": 1e-3,
     "W_PRE_ACTIVATION_REG": 0.0,
+    "LR_ENTROPY": 3e-4,
     "DELAYED_UPDATE": 2,
-    "PRETRAIN_STEP": 0,
-    "MULTIPLE_LEARN": 2,  # multiple learning updates
-    "LAMBDA1": 1.0,  # N-step return weight
-    "LAMBDA2": 1e-5,  # l2 regularization weight
-    "LAMBDA3": 1.0,  # actor loss contribution of prior weight
-    "PER_ALPHA": 0.6,
-    "PER_BETA": 0.4,
-    "PER_EPS": 1e-6,
-    "PER_EPS_DEMO": 1.0,
+    "WEIGHT_DECAY": 0.0,
     "INITIAL_RANDOM_ACTION": int(1e4),
 }
 
 
-def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int):
+def run(env, args, state_dim, action_dim):
     """Run training or test.
 
     Args:
@@ -91,20 +80,22 @@ def run(env: gym.Env, args: argparse.Namespace, state_dim: int, action_dim: int)
     actor_optim = optim.Adam(
         actor.parameters(),
         lr=hyper_params["LR_ACTOR"],
-        weight_decay=hyper_params["LAMBDA2"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
     vf_optim = optim.Adam(
-        vf.parameters(), lr=hyper_params["LR_VF"], weight_decay=hyper_params["LAMBDA2"]
+        vf.parameters(),
+        lr=hyper_params["LR_VF"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
     qf_1_optim = optim.Adam(
         qf_1.parameters(),
         lr=hyper_params["LR_QF1"],
-        weight_decay=hyper_params["LAMBDA2"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
     qf_2_optim = optim.Adam(
         qf_2.parameters(),
         lr=hyper_params["LR_QF2"],
-        weight_decay=hyper_params["LAMBDA2"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
 
     # make tuples to create an agent
