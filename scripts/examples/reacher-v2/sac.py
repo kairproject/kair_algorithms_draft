@@ -19,23 +19,24 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # hyper parameters
 hyper_params = {
+    "N_STEP": 3,
     "GAMMA": 0.99,
-    "TAU": 5e-3,
-    "W_ENTROPY": 1e-3,
-    "W_MEAN_REG": 1e-3,
-    "W_STD_REG": 1e-3,
-    "W_PRE_ACTIVATION_REG": 0.0,
+    "TAU": 1e-3,
+    "BUFFER_SIZE": int(1e6),
+    "BATCH_SIZE": 128,
+    "AUTO_ENTROPY_TUNING": True,
     "LR_ACTOR": 3e-4,
     "LR_VF": 3e-4,
     "LR_QF1": 3e-4,
     "LR_QF2": 3e-4,
+    "W_ENTROPY": 1e-3,
+    "W_MEAN_REG": 1e-3,
+    "W_STD_REG": 1e-3,
+    "W_PRE_ACTIVATION_REG": 0.0,
     "LR_ENTROPY": 3e-4,
     "DELAYED_UPDATE": 2,
-    "BUFFER_SIZE": int(1e6),
-    "BATCH_SIZE": 512,
-    "AUTO_ENTROPY_TUNING": True,
     "WEIGHT_DECAY": 0.0,
-    "INITIAL_RANDOM_ACTION": 20000,
+    "INITIAL_RANDOM_ACTION": int(1e4),
 }
 
 
