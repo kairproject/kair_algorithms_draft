@@ -7,7 +7,7 @@ import numpy as np
 from gym import spaces
 from gym.utils import seeding
 
-import rospy  # noqa
+import rospy
 from gazebo_msgs.srv import GetModelState
 from ros_interface import OpenManipulatorRosInterface
 
