@@ -9,20 +9,21 @@
 
     </inertial>
     <visual>
-      <origin xyz="0.025 0.025 0.025"/>
+      <origin xyz="0.0001 0.0001 0.0001"/>
       <geometry>
-        <box size="0.045 0.045 0.045" />
+        <box size="0.05 0.05 0.05" />
       </geometry>
     </visual>
     <collision>
-      <origin xyz="0.025 0.025 0.025"/>
+      <origin xyz="0.0001 0.0001 0.0001"/>
       <geometry>
-        <box size="0.045 0.045 0.045" />
+        <box size="0.0001 0.0001 0.0001" />
       </geometry>
     </collision>
   </link>
-  <gazebo reference="block">
-    <material>Gazebo/Red</material>
+  <gazebo>
+     <static>true</static>
+     <material>Gazebo/Blue</material>
      <mu1>1000</mu1>
      <mu2>1000</mu2>
   </gazebo>
