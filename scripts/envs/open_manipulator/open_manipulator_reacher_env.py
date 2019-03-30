@@ -7,7 +7,7 @@ import numpy as np
 from gym import spaces
 from gym.utils import seeding
 
-import rospy
+import rospy  # noqa
 from gazebo_msgs.srv import GetModelState
 from ros_interface import OpenManipulatorRosInterface
 
@@ -20,8 +20,6 @@ Y_MIN = -0.3
 Y_MAX = 0.3
 Z_MIN = 0.0
 Z_MAX = 0.6
-TERM_COUNT = 10
-SUC_COUNT = 10
 
 
 class OpenManipulatorReacherEnv(gym.Env):

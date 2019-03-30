@@ -5,8 +5,8 @@ import os
 import numpy as np
 from math import pi
 
-import rospkg
-import rospy
+import rospkg  # noqa
+import rospy  # noqa
 from gazebo_msgs.srv import DeleteModel, SpawnModel  # GetModelState
 from geometry_msgs.msg import Point, Pose, Quaternion
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
