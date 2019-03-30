@@ -3,6 +3,7 @@
 import os
 
 import numpy as np
+from math import pi
 
 import rospkg
 import rospy
@@ -13,10 +14,21 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from tf import TransformListener
 
+# Global variables
+TERM_COUNT = 10
+SUC_COUNT = 10
+
 base_dir = os.path.dirname(os.path.realpath(__file__))
+
 overhead_orientation = Quaternion(
     x=-0.00142460053167, y=0.999994209902, z=-0.00177030764765, w=0.00253311793936
 )
+
+
+# safe joint limits
+joint_limits = {
+    'hi': {'j1': pi * 0.9, 'j2': pi * 0.5, 'j3': pi * 0.44, 'j4': pi * 0.65},
+    'lo': {'j1': -pi * 0.9, 'j2': -pi * 0.57, 'j3': -pi * 0.3, 'j4': -pi * 0.57}}
 
 
 class OpenManipulatorRosInterface:
@@ -24,6 +36,9 @@ class OpenManipulatorRosInterface:
         rospy.init_node("OpenManipulatorRosInterface")
 
         self.tf = TransformListener()
+        self.termination_count = 0
+        self.success_count = 0
+
         self.joint_speeds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -245,3 +260,76 @@ class OpenManipulatorRosInterface:
         slope = (out_z - in_z) / (out_rad - in_rad)
         intercept = in_z
         return slope * (query - in_rad) + intercept
+
+    def _check_for_success(self):
+        """Check if the agent has succeeded the episode.
+
+        Returns:
+            True when count reaches SUC_COUNT, else False.
+        """
+        _dist = self._get_dist()
+        if _dist < self.ros_interface.distance_threshold:
+            self.success_count += 1
+            if self.success_count == SUC_COUNT:
+                self.done = True
+                self.success_count = 0
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def _check_for_termination(self):
+        """Check if the agent has reached undesirable state.
+
+        If so, terminate the episode early.
+
+        Returns:
+            True when count reaches TERM_COUNT, else False.
+        """
+        _ee_pose = self.get_gripper_position()
+
+        inner_rad = 0.134
+        outer_rad = 0.3
+        lower_rad = 0.384
+        inner_z = 0.321
+        outer_z = 0.250
+        lower_z = 0.116
+        rob_rad = np.linalg.norm([_ee_pose[0], _ee_pose[1]])
+        rob_z = _ee_pose[2]
+        if self.joint_positions[0] <= abs(joint_limits['hi']['j1'] / 2):
+            if rob_rad < inner_rad:
+                self.termination_count += 1
+                rospy.logwarn('OUT OF BOUNDARY : exceeds inner radius limit')
+            elif inner_rad <= rob_rad < outer_rad:
+                upper_z = self._geom_interpolation(inner_rad, outer_rad,
+                                                   inner_z, outer_z,
+                                                   rob_rad)
+                if rob_z > upper_z:
+                    self.termination_count += 1
+                    rospy.logwarn('OUT OF BOUNDARY : exceeds upper z limit')
+            elif outer_rad <= rob_rad < lower_rad:
+                bevel_z = self._geom_interpolation(outer_rad, lower_rad,
+                                                   outer_z, lower_z,
+                                                   rob_rad)
+                if rob_z > bevel_z:
+                    self.termination_count += 1
+                    rospy.logwarn('OUT OF BOUNDARY : exceeds bevel z limit')
+            else:
+                self.termination_count += 1
+                rospy.logwarn('OUT OF BOUNDARY : exceeds outer radius limit')
+        else:
+            # joint_1 limit exceeds
+            self.termination_count += 1
+            rospy.logwarn('OUT OF BOUNDARY : joint_1_limit exceeds')
+
+        if self.termination_count == TERM_COUNT:
+            self.done = True
+            self.termination_count = 0
+            return True
+        else:
+            return False
+
+    def close(self):
+        """Close by rospy shutdown."""
+        rospy.signal_shutdown("done")

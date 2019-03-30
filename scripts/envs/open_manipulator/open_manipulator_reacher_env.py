@@ -8,14 +8,8 @@ from gym import spaces
 from gym.utils import seeding
 
 import rospy
-from math import pi
 from gazebo_msgs.srv import GetModelState
 from ros_interface import OpenManipulatorRosInterface
-
-# safe joint limits
-joint_limits = {
-    'hi': {'j1': pi * 0.9, 'j2': pi * 0.5, 'j3': pi * 0.44, 'j4': pi * 0.65},
-    'lo': {'j1': -pi * 0.9, 'j2': -pi * 0.57, 'j3': -pi * 0.3, 'j4': -pi * 0.57}}
 
 # Global variables
 ACTION_DIM = 3  # Cartesian
@@ -55,8 +49,6 @@ class OpenManipulatorReacherEnv(gym.Env):
         self.reward = 0
         self.reward_rescale = 1.0
         self.reward_type = "sparse"
-        self.termination_count = 0
-        self.success_count = 0
         self.step_cnt = 0
         self.tic = 0.0
         self.toc = 0.0
@@ -139,10 +131,6 @@ class OpenManipulatorReacherEnv(gym.Env):
 
         return obs
 
-    def close(self):
-        """Close by rospy shutdown."""
-        rospy.signal_shutdown("done")
-
     def _check_robot_moving(self):
         """Check if robot has reached its initial pose.
 
@@ -153,75 +141,6 @@ class OpenManipulatorReacherEnv(gym.Env):
             if self.moving_state == "STOPPED":
                 break
         return True
-
-    def _check_for_success(self):
-        """Check if the agent has succeeded the episode.
-
-        Returns:
-            True when count reaches SUC_COUNT, else False.
-        """
-        _dist = self._get_dist()
-        if _dist < self.ros_interface.distance_threshold:
-            self.success_count += 1
-            if self.success_count == SUC_COUNT:
-                self.done = True
-                self.success_count = 0
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def _check_for_termination(self):
-        """Check if the agent has reached undesirable state.
-
-        If so, terminate the episode early.
-
-        Returns:
-            True when count reaches TERM_COUNT, else False.
-        """
-        _ee_pose = self.ros_interface.get_gripper_position()
-
-        inner_rad = 0.134
-        outer_rad = 0.3
-        lower_rad = 0.384
-        inner_z = 0.321
-        outer_z = 0.250
-        lower_z = 0.116
-        rob_rad = np.linalg.norm([_ee_pose[0], _ee_pose[1]])
-        rob_z = _ee_pose[2]
-        if self.ros_interface.joint_positions[0] <= abs(joint_limits['hi']['j1'] / 2):
-            if rob_rad < inner_rad:
-                self.termination_count += 1
-                rospy.logwarn('OUT OF BOUNDARY : exceeds inner radius limit')
-            elif inner_rad <= rob_rad < outer_rad:
-                upper_z = self.ros_interface._geom_interpolation(inner_rad, outer_rad,
-                                                                 inner_z, outer_z,
-                                                                 rob_rad)
-                if rob_z > upper_z:
-                    self.termination_count += 1
-                    rospy.logwarn('OUT OF BOUNDARY : exceeds upper z limit')
-            elif outer_rad <= rob_rad < lower_rad:
-                bevel_z = self.ros_interface._geom_interpolation(outer_rad, lower_rad,
-                                                                 outer_z, lower_z,
-                                                                 rob_rad)
-                if rob_z > bevel_z:
-                    self.termination_count += 1
-                    rospy.logwarn('OUT OF BOUNDARY : exceeds bevel z limit')
-            else:
-                self.termination_count += 1
-                rospy.logwarn('OUT OF BOUNDARY : exceeds outer radius limit')
-        else:
-            # joint_1 limit exceeds
-            self.termination_count += 1
-            rospy.logwarn('OUT OF BOUNDARY : joint_1_limit exceeds')
-
-        if self.termination_count == TERM_COUNT:
-            self.done = True
-            self.termination_count = 0
-            return True
-        else:
-            return False
 
     def _compute_reward(self):
         """Computes shaped/sparse reward for each episode.
