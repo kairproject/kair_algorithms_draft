@@ -44,7 +44,7 @@ class AbstractAgent(object):
             self.args.max_episode_steps = env._max_episode_steps
 
         # for logging
-        self.env_name = str(self.env.env).split("<")[2].replace(">>", "")
+        self.env_name = str(self.env.env).split("<")[1].replace(">>", "")
         self.sha = (
             subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])[:-1]
             .decode("ascii")

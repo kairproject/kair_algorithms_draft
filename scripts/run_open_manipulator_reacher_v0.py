@@ -59,9 +59,8 @@ def main():
     # TODO: uncomment here.
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
-
     # set a random seed
-    common_utils.set_random_seed(args.seed, env)
+    # common_utils.set_random_seed(args.seed, env)
 
     # run
     module_path = "examples.open_manipulator_reacher_v0." + args.algo

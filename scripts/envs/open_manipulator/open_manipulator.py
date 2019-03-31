@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import gym
 import copy
 import math
 import os
@@ -32,8 +33,11 @@ overhead_orientation = Quaternion(
 )
 
 # safe joint limits
-joint_limits = {'hi':{'j1':pi*0.9,  'j2':pi*0.5,   'j3':pi*0.44, 'j4': pi*0.65 },
-                'lo':{'j1':-pi*0.9, 'j2':-pi*0.57, 'j3':-pi*0.3, 'j4':-pi*0.57 }}
+joint_limits = {'hi':{'j1':pi*0.9,  'j2':pi*0.5,   'j3':pi*0.44, 'j4': pi*0.65, 'grip':-.001 },
+                'lo':{'j1':-pi*0.9, 'j2':-pi*0.57, 'j3':-pi*0.3, 'j4':-pi*0.57, 'grip': .019 }}
+
+# <limit velocity="4.8" effort="1" lower="-0.010" upper="0.019" />
+
 
 cartesian_limits = {}
 # safe cartesian limits 
@@ -92,6 +96,7 @@ class OpenManipulatorEnv:
         self.reward_type = "sparse"
         self.termination_count = 0
         self.success_count = 0
+        self._control_mode = 'position' # TODO: add 'velocity', 'effort' control methods
 
         self.pub_gripper_position = rospy.Publisher(
             "/open_manipulator/gripper_position/command", Float64, queue_size=1
@@ -161,10 +166,72 @@ class OpenManipulatorEnv:
         self.moving_state = ""
         self.actuator_state = ""
         self.init_robot_pose()
+        # TODO: replace following attributes with those inherited from gym.env
+        self.reward_range = None
+        self.metadata = None
+        self._max_episode_steps = 50
+
         rospy.on_shutdown(self._delete_target_block)
 
+    def get_observation(self):
+        """
+        Get robot observation.
+
+        :return: robot observation
+        """
+        # cartesian space : TODO: consider if more info (e.g. lin/ang velocitiy in CS) is necessary.
+        gripper_pos = np.array(self.gripper_position)
+        gripper_ori = np.array(self.gripper_orientiation)
+
+        # joint space
+        robot_joint_angles = np.array(self.joint_positions)
+        robot_joint_velocities = np.array(self.joint_velocities)
+        robot_joint_efforts = np.array(self.joint_efforts)
+
+        obs = np.concatenate(
+            (gripper_pos, gripper_ori, robot_joint_angles,
+             robot_joint_velocities, robot_joint_efforts))
+        return obs
+
+    @property
+    def observation_space(self):
+        """ return the open manipulator's state space for this specific environment.
+        """
+        return gym.spaces.Box(
+        -np.inf,
+        np.inf,
+        shape=self.get_observation().shape,
+        dtype=np.float32)
     
-    def render(self):
+    @property
+    def action_space(self):
+        """ return the open manipulator's action space for this specific environment.
+            TODO: expand to various action space types.
+        """
+        if self._control_mode == 'position':
+            lower_bounds = np.array(
+            [joint_limits['lo']['j1'], joint_limits['lo']['j2'], joint_limits['lo']['j3'], joint_limits['lo']['j4'], joint_limits['lo']['grip']])
+            upper_bounds = np.array(
+            [joint_limits['hi']['j1'], joint_limits['hi']['j2'], joint_limits['hi']['j3'], joint_limits['hi']['j4'], joint_limits['hi']['grip']])
+        elif self._control_mode == 'velocity':
+            raise NotImplementedError('Control mode %s is not implemented yet.' % self._control_mode)
+
+        elif self._control_mode == 'effort':
+            raise NotImplementedError('Control mode %s is not implemented yet.' % self._control_mode)
+        else:
+            raise ValueError('Control mode %s is not known!' % self._control_mode)
+        return gym.spaces.Box(
+            lower_bounds,
+            upper_bounds,
+            dtype=np.float32)
+
+    def seed(seed):
+        """ apply random seed to the environment.
+        TODO: implement this method.
+        """
+        return True
+
+    def render(self, mode):
         pass
     
     def robot_state_callback(self, msg):
@@ -232,11 +299,10 @@ class OpenManipulatorEnv:
         """
         # rospy.loginfo(Set joint position)
         self.pub_gripper_position.publish(joints_angles[0])
-        self.pub_gripper_sub_position.publish(joints_angles[1])
-        self.pub_joint1_position.publish(joints_angles[2])
-        self.pub_joint2_position.publish(joints_angles[3])
-        self.pub_joint3_position.publish(joints_angles[4])
-        self.pub_joint4_position.publish(joints_angles[5])
+        self.pub_joint1_position.publish(joints_angles[1])
+        self.pub_joint2_position.publish(joints_angles[2])
+        self.pub_joint3_position.publish(joints_angles[3])
+        self.pub_joint4_position.publish(joints_angles[4])
 
     def step(self, action=np.array([1, 1, 1, 1, 1, 1]), step=0):
         """Function executed each time step.
@@ -275,7 +341,8 @@ class OpenManipulatorEnv:
             print("Current EE pos: ", self.gripper_position)
             print("Actions: ", act)
 
-        obs = np.array([_joint_pos, _joint_vels, _joint_effos])
+
+        obs = self.get_observation()
         info = ''
 
         return obs, self.reward_rescale * self.reward, self.done, info
@@ -289,7 +356,7 @@ class OpenManipulatorEnv:
         did_reset_sim = False
         self._reset_gazebo_world()
         _joint_pos, _joint_vels, _joint_effos = self.get_joints_states()
-        obs = np.array([_joint_pos, _joint_vels, _joint_effos])
+        obs = self.get_observation()
 
         return obs
 
