@@ -32,7 +32,7 @@ hyper_params = {
 }
 
 
-def get(env, args):
+def get_agent(env, args):
     """Run training or test.
 
     Args:

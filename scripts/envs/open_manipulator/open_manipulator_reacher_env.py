@@ -11,13 +11,30 @@ from ros_interface import (
 
 
 class OpenManipulatorReacherEnv(gym.Env):
+    # TODO: write docstring
+    """Open Manipulator Reacher environment on gym.
+
+    Attributes:
+        cfg (dict): environment config
+        env_mode (str): select mode (sim, real)
+        _max_episode_steps (int): max steps per episodes
+        reward_rescale_ratio (float):
+        reward_func (str): function name for calculating reward
+
+    """
     # TODO: cfg or config
     def __init__(self, cfg):
+        """Initialization.
+
+        Args:
+            cfg (dict): environment config
+
+        """
         self.cfg = cfg
-        self.env_mode = self.cfg.env_mode
-        self._max_episode_steps = self.cfg.max_episode_steps
-        self.reward_rescale_ratio = self.cfg.reward_rescale_ratio
-        self.reward_func = self.cfg.reward_func
+        self.env_mode = self.cfg["ENV_MODE"]
+        self._max_episode_steps = self.cfg["MAX_EPISODE_STEPS"]
+        self.reward_rescale_ratio = self.cfg["REWARD_RESCALE_RATIO"]
+        self.reward_func = self.cfg["REWARD_FUNC"]
 
         assert self.env_mode in ["sim", "real"]
         if self.env_mode == "sim":
@@ -34,6 +51,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         self.seed()
 
     def seed(self, seed=None):
+        """Set random seed."""
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 

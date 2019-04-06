@@ -12,7 +12,7 @@ import importlib
 
 import algorithms.common.helper_functions as common_utils
 from envs.open_manipulator.open_manipulator_reacher_env import OpenManipulatorReacherEnv
-from scripts.config.env import open_manipulator
+from scripts.config.env.open_manipulator import config as env_cfg
 
 # configurations
 parser = argparse.ArgumentParser(description="Pytorch RL algorithms")
@@ -55,16 +55,15 @@ args = parser.parse_args()
 def main():
     """Main."""
     # env initialization
-    cfg = open_manipulator
-    env = OpenManipulatorReacherEnv(cfg)
+    env = OpenManipulatorReacherEnv(env_cfg)
 
     # set a random seed
     common_utils.set_random_seed(args.seed, env)
 
     # agent initialization
     module_path = "examples.open_manipulator_reacher_v0." + args.algo
-    agent = importlib.import_module(module_path)
-    agent.get(env, args)
+    agent_config = importlib.import_module(module_path)
+    agent = agent_config.get_agent(env, args)
 
     # run
     if args.test:

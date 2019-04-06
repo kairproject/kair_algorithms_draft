@@ -4,7 +4,7 @@ from abc import ABCMeta
 from math import cos, sin
 
 import gym
-from config.env.open_manipulator.config import *  # noqa
+import numpy as np
 
 import rospkg  # noqa
 import rospy  # noqa
@@ -16,12 +16,14 @@ from std_msgs.msg import Float64
 
 
 class OpenManipulatorRosBaseInterface(object):
+    """Open Manipulator Interface based on ROS."""
 
     __metaclass__ = ABCMeta
 
     def __init__(self, cfg):
+        """Initialization."""
         self.cfg = cfg
-        self.train_mode = self.cfg.train_mode
+        self.train_mode = self.cfg["TRAIN_MODE"]
 
         self.joint_speeds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -39,6 +41,8 @@ class OpenManipulatorRosBaseInterface(object):
         rospy.on_shutdown(self.delete_target_block)
 
     def publish_node(self):
+        # TODO: write docstring
+
         self.pub_gripper_position = rospy.Publisher(
             "/open_manipulator/gripper_position/command", Float64, queue_size=1
         )
@@ -62,6 +66,8 @@ class OpenManipulatorRosBaseInterface(object):
         self.kinematics_cmd = [0.0, 0.0, 0.0]
 
     def subscribe_node(self):
+        # TODO: write docstring
+
         self.sub_joint_state = rospy.Subscriber(
             "/open_manipulator/joint_states", JointState, self.joint_state_callback
         )
@@ -88,7 +94,7 @@ class OpenManipulatorRosBaseInterface(object):
 
         self.gripper_position = [0.0, 0.0, 0.0]
         self.gripper_orientiation = [0.0, 0.0, 0.0]
-        self.distance_threshold = distance_threshold
+        self.distance_threshold = self.cfg["DISTANCE_THRESHOLD"]
 
         self.moving_state = ""
         self.actuator_state = ""
@@ -201,25 +207,28 @@ class OpenManipulatorRosBaseInterface(object):
 
     @property
     def action_space(self):
-        """ return the open manipulator's action space for this specific environment.
-        """
+        """Return the open manipulator's action space for this specific environment."""
+        control_mode = self.cfg["CONTROL_MODE"]
+
         if control_mode == "position":
+            joint_limits = self.cfg["JOINT_LIMITS"]
+
             lower_bounds = np.array(
                 [
-                    joint_limits["lo"]["j1"],
-                    joint_limits["lo"]["j2"],
-                    joint_limits["lo"]["j3"],
-                    joint_limits["lo"]["j4"],
-                    joint_limits["hi"]["grip"],
+                    joint_limits["LOW"]["J1"],
+                    joint_limits["LOW"]["J2"],
+                    joint_limits["LOW"]["J3"],
+                    joint_limits["LOW"]["J4"],
+                    joint_limits["LOW"]["GRIP"],
                 ]
             )
             upper_bounds = np.array(
                 [
-                    joint_limits["hi"]["j1"],
-                    joint_limits["hi"]["j2"],
-                    joint_limits["hi"]["j3"],
-                    joint_limits["hi"]["j4"],
-                    joint_limits["lo"]["grip"],
+                    joint_limits["HIGH"]["J1"],
+                    joint_limits["HIGH"]["J2"],
+                    joint_limits["HIGH"]["J3"],
+                    joint_limits["HIGH"]["J4"],
+                    joint_limits["HIGH"]["GRIP"],
                 ]
             )
         elif control_mode == "velocity":
@@ -233,23 +242,21 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print (lower_bounds, upper_bounds, action_dim)
+        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     @property
     def observation_space(self):
-        """ return the open manipulator's state space for this specific environment.
-        """
+        """Return the open manipulator's state space for this specific environment."""
         return gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=observation_dim, dtype=np.float32
+            low=-np.inf,
+            high=np.inf,
+            shape=self.cfg["OBSERVATION_DIM"],
+            dtype=np.float32,
         )
 
     def set_joints_position(self, joints_angles):
-        """Move joints using joint position command publishers.
-
-        Args:
-            joints_angles (Float64): Move joints with angles.
-        """
+        """Move joints using joint position command publishers."""
         self.pub_gripper_position.publish(joints_angles[0])
         self.pub_joint1_position.publish(joints_angles[1])
         self.pub_joint2_position.publish(joints_angles[2])
@@ -282,7 +289,7 @@ class OpenManipulatorRosBaseInterface(object):
         dist = self.get_dist()
         if dist < self.distance_threshold:
             self.success_count += 1
-            if self.success_count == suc_count:
+            if self.success_count == self.cfg["SUCCESS_COUNT"]:
                 self.done = True
                 self.success_count = 0
                 return True
@@ -301,13 +308,23 @@ class OpenManipulatorRosBaseInterface(object):
         """
         _ee_pose = self.get_gripper_position()
 
+        inner_rad, outer_rad, lower_rad, inner_z, outer_z, lower_z, term_count = (
+            self.cfg["INNER_RADIAN"],
+            self.cfg["OUTER_RADIAN"],
+            self.cfg["LOWER_RADIAN"],
+            self.cfg["INNER_Z"],
+            self.cfg["OUTER_Z"],
+            self.cfg["LOWER_Z"],
+            self.cfg["TERM_COUNT"],
+        )
+
         rob_rad = np.linalg.norm([_ee_pose[0], _ee_pose[1]])
         rob_z = _ee_pose[2]
-        if self.joint_positions[0] <= abs(joint_limits["hi"]["j1"] / 2):
-            if rob_rad < inner_rad:
+        if self.joint_positions[0] <= abs(self.cfg["JOINT_LIMITS"]["HIGH"]["J1"] / 2):
+            if rob_rad < self.cfg["INNER_RADIAN"]:
                 self.termination_count += 1
                 rospy.logwarn("OUT OF BOUNDARY : exceeds inner radius limit")
-            elif inner_rad <= rob_rad < outer_rad:
+            elif self.cfg["INNER_RADIAN"] <= rob_rad < self.cfg["OUTER_RADIAN"]:
                 upper_z = self._geom_interpolation(
                     inner_rad, outer_rad, inner_z, outer_z, rob_rad
                 )
@@ -342,14 +359,15 @@ class OpenManipulatorRosBaseInterface(object):
 
 
 class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
+    # TODO: write docstring
+    """Open Manipulator Interface based on ROS for Gazebo."""
+
     def __init__(self, cfg):
         rospy.init_node("OpenManipulatorRosGazeboInterface")
         super(OpenManipulatorRosGazeboInterface, self).__init__(cfg)
 
     def reset_gazebo_world(self, block_pose=None):
-        """Initialize randomly the state of robot agent and
-        surrounding envs (including target obj.).
-        """
+        """Initialize randomly the state of robot agent and surrounding envs (including target obj.)."""
         if block_pose is not None:
             assert self.train_mode is True
 
@@ -367,6 +385,12 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         """Set target block Gazebo model"""
         # random generated blocks for train
         if block_pose is None:
+            polar_rad, polar_theta, overhead_orientation = (
+                np.random.uniform(self.cfg["POLAR_RADIAN_BOUNDARY"]),
+                np.random.uniform(self.cfg["POLAR_THETA_BOUNDARY"]),
+                self.cfg["OVERHEAD_ORIENTATION"],
+            )
+
             block_pose = Pose()
             block_pose.position.x = polar_rad * cos(polar_theta)
             block_pose.position.y = polar_rad * sin(polar_theta)
@@ -375,8 +399,6 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
 
         block_reference_frame = "world"
         model_path = rospkg.RosPack().get_path("kair_algorithms") + "/urdf/"
-
-        block_xml = ""
 
         with open(model_path + "block/model.urdf", "r") as block_file:
             block_xml = block_file.read().replace("\n", "")
