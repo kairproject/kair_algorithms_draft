@@ -42,22 +42,28 @@ hyper_params = {
     "PER_EPS": 1e-6,
     "PER_EPS_DEMO": 1.0,
     "INITIAL_RANDOM_ACTION": int(1e4),
+    "NETWORK": {
+        "ACTOR_HIDDEN_SIZES": [256, 256],
+        "VF_HIDDEN_SIZES": [256, 256],
+        "QF_HIDDEN_SIZES": [256, 256],
+    },
 }
 
 
-def run(env, args, state_dim, action_dim):
+def get(env, args):
     """Run training or test.
 
     Args:
         env (gym.Env): openAI Gym environment with continuous action space
         args (argparse.Namespace): arguments including training settings
-        state_dim (int): dimension of states
-        action_dim (int): dimension of actions
 
     """
-    hidden_sizes_actor = [256, 256]
-    hidden_sizes_vf = [256, 256]
-    hidden_sizes_qf = [256, 256]
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+
+    hidden_sizes_actor = hyper_params["NETWORK"]["ACTOR_HIDDEN_SIZES"]
+    hidden_sizes_vf = hyper_params["NETWORK"]["VF_HIDDEN_SIZES"]
+    hidden_sizes_qf = hyper_params["NETWORK"]["QF_HIDDEN_SIZES"]
 
     # target entropy
     target_entropy = -np.prod((action_dim,)).item()  # heuristic

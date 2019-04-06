@@ -57,15 +57,14 @@ def main():
     # env initialization
     cfg = open_manipulator
     env = OpenManipulatorReacherEnv(cfg)
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
+
     # set a random seed
     common_utils.set_random_seed(args.seed, env)
 
     # agent initialization
     module_path = "examples.open_manipulator_reacher_v0." + args.algo
     agent = importlib.import_module(module_path)
-    agent.get(env, args, state_dim, action_dim)
+    agent.get(env, args)
 
     # run
     if args.test:

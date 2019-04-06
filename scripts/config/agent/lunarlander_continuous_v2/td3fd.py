@@ -40,21 +40,23 @@ hyper_params = {
     "PER_BETA": 1.0,
     "PER_EPS": 1e-6,
     "PER_EPS_DEMO": 1.0,
+    "NETWORK": {"ACTOR_HIDDEN_SIZES": [400, 300], "CRITIC_HIDDEN_SIZES": [400, 300]},
 }
 
 
-def run(env, args, state_dim, action_dim):
+def get(env, args):
     """Run training or test.
 
     Args:
         env (gym.Env): openAI Gym environment with continuous action space
         args (argparse.Namespace): arguments including training settings
-        state_dim (int): dimension of states
-        action_dim (int): dimension of actions
 
     """
-    hidden_sizes_actor = [400, 300]
-    hidden_sizes_critic = [400, 300]
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+
+    hidden_sizes_actor = hyper_params["NETWORK"]["ACTOR_HIDDEN_SIZES"]
+    hidden_sizes_critic = hyper_params["NETWORK"]["CRITIC_HIDDEN_SIZES"]
 
     # create actor
     actor = MLP(
