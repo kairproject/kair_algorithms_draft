@@ -7,6 +7,7 @@
 
 import torch
 import torch.optim as optim
+
 from algorithms.common.networks.mlp import MLP
 from algorithms.common.noise import GaussianNoise
 from algorithms.td3.agent import Agent
@@ -21,7 +22,7 @@ hyper_params = {
     "BATCH_SIZE": 100,
     "LR_ACTOR": 1e-3,
     "LR_CRITIC": 1e-3,
-    "WEIGHT_DECAY": 0.000,
+    "WEIGHT_DECAY": 0.0,
     "EXPLORATION_NOISE": 0.1,
     "TARGET_POLICY_NOISE": 0.2,
     "TARGET_POLICY_NOISE_CLIP": 0.5,
@@ -122,10 +123,4 @@ def run(env, args, state_dim, action_dim):
     noises = (exploration_noise, target_policy_noise)
 
     # create an agent
-    agent = Agent(env, args, hyper_params, models, optims, noises)
-
-    # run
-    if args.test:
-        agent.test()
-    else:
-        agent.train()
+    return Agent(env, args, hyper_params, models, optims, noises)

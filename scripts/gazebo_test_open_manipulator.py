@@ -5,18 +5,17 @@ from math import cos, pi, sin
 import numpy as np
 
 import rospy
-from envs.open_manipulator import OpenManipulatorReacherEnv, config
+from envs.open_manipulator import OpenManipulatorReacherEnv
 from geometry_msgs.msg import Pose, Quaternion
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
+from scripts.config.env import open_manipulator
 
 overhead_orientation = Quaternion(
-    x=-0.00142460053167,
-    y=0.999994209902,
-    z=-0.00177030764765,
-    w=0.00253311793936)
+    x=-0.00142460053167, y=0.999994209902, z=-0.00177030764765, w=0.00253311793936
+)
 
-cfg = config
+cfg = open_manipulator
 
 
 def test_reset():
@@ -41,7 +40,9 @@ def test_forward():
     forward_pose.max_velocity_scaling_factor = 0.0
     forward_pose.tolerance = 0.0
     try:
-        task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+        task_space_srv = rospy.ServiceProxy(
+            "/open_manipulator/goal_task_space_path", SetKinematicsPose
+        )
         _ = task_space_srv("arm", "gripper", forward_pose, 2.0)
     except rospy.ServiceException as e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -49,12 +50,14 @@ def test_forward():
 
 def test_rotate():
     _qpose = JointPosition()
-    _qpose.joint_name = ['joint1', 'joint2', 'joint3', 'joint4']
+    _qpose.joint_name = ["joint1", "joint2", "joint3", "joint4"]
     _qpose.position = [0.5, 0.0, 0.0, 0.5]
     _qpose.max_accelerations_scaling_factor = 0.0
     _qpose.max_velocity_scaling_factor = 0.0
     try:
-        task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_joint_space_path_from_present', SetJointPosition)
+        task_space_srv = rospy.ServiceProxy(
+            "/open_manipulator/goal_joint_space_path_from_present", SetJointPosition
+        )
         _ = task_space_srv("arm", _qpose, 2.0)
     except rospy.ServiceException, e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -70,7 +73,7 @@ def test_block_loc():
     env = OpenManipulatorReacherEnv(cfg)
     for iter in range(20):
         b_pose = Pose()
-        b_pose.position.x = np.random.uniform(0.15, .20)
+        b_pose.position.x = np.random.uniform(0.15, 0.20)
         b_pose.position.y = np.random.uniform(-0.2, 0.2)
         b_pose.position.z = 0.00
         b_pose.orientation = overhead_orientation
@@ -83,7 +86,7 @@ def test_achieve_goal():
     env = OpenManipulatorReacherEnv(cfg)
     for iter in range(20):
         block_pose = Pose()
-        block_pose.position.x = np.random.uniform(0.25, .6)
+        block_pose.position.x = np.random.uniform(0.25, 0.6)
         block_pose.position.y = np.random.uniform(-0.4, 0.4)
         block_pose.position.z = 0.00
         block_pose.orientation = overhead_orientation
@@ -98,7 +101,9 @@ def test_achieve_goal():
         forward_pose.max_velocity_scaling_factor = 0.0
         forward_pose.tolerance = 0.0
         try:
-            task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+            task_space_srv = rospy.ServiceProxy(
+                "/open_manipulator/goal_task_space_path", SetKinematicsPose
+            )
             _ = task_space_srv("arm", "gripper", forward_pose, 2.0)
         except rospy.ServiceException, e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -127,7 +132,9 @@ def test_workspace_limit():
         forward_pose.max_velocity_scaling_factor = 0.0
         forward_pose.tolerance = 0.0
         try:
-            task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+            task_space_srv = rospy.ServiceProxy(
+                "/open_manipulator/goal_task_space_path", SetKinematicsPose
+            )
             _ = task_space_srv("arm", "gripper", forward_pose, 3.0)
         except rospy.ServiceException, e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -136,7 +143,7 @@ def test_workspace_limit():
         env.ros_interface.delete_target_block()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # test_reset()
     # test_forward()
     # test_rotate()

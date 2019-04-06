@@ -64,8 +64,14 @@ def main():
 
     # run
     module_path = "examples.lunarlander_continuous_v2." + args.algo
-    example = importlib.import_module(module_path)
-    example.run(env, args, state_dim, action_dim)
+    agent = importlib.import_module(module_path)
+    agent.get(env, args, state_dim, action_dim)
+
+    # run
+    if args.test:
+        agent.test()
+    else:
+        agent.train()
 
 
 if __name__ == "__main__":

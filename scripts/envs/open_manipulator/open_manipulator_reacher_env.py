@@ -11,6 +11,7 @@ from ros_interface import (
 
 
 class OpenManipulatorReacherEnv(gym.Env):
+    # TODO: cfg or config
     def __init__(self, cfg):
         self.cfg = cfg
         self.env_mode = self.cfg.env_mode
@@ -62,9 +63,9 @@ class OpenManipulatorReacherEnv(gym.Env):
         if self.env_mode == "sim":
             self.reward = self.compute_reward()
             if self.ros_interface.check_for_termination():
-                print("Terminates current Episode : OUT OF BOUNDARY")
+                print ("Terminates current Episode : OUT OF BOUNDARY")
             elif self.ros_interface.check_for_success():
-                print("Succeeded current Episode")
+                print ("Succeeded current Episode")
         obs = self.ros_interface.get_observation()
 
         self.episode_steps += 1
@@ -104,7 +105,7 @@ class OpenManipulatorReacherEnv(gym.Env):
             reward = reward.astype(np.float32)
         elif self.reward_func == "l2":
             # - L2 distance
-            reward = - cur_dist
+            reward = -cur_dist
         else:
             raise ValueError
 

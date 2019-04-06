@@ -4,11 +4,10 @@ from abc import ABCMeta
 from math import cos, sin
 
 import gym
-import numpy as np
+from config.env.open_manipulator.config import *  # noqa
 
 import rospkg  # noqa
 import rospy  # noqa
-from config import *  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel
 from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
@@ -234,7 +233,7 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print(lower_bounds, upper_bounds, action_dim)
+        print (lower_bounds, upper_bounds, action_dim)
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     @property

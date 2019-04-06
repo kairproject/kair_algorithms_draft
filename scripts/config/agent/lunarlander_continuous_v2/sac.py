@@ -102,10 +102,4 @@ def run(env, args, state_dim, action_dim):
     optims = (actor_optim, vf_optim, qf_1_optim, qf_2_optim)
 
     # create an agent
-    agent = Agent(env, args, hyper_params, models, optims, target_entropy)
-
-    # run
-    if args.test:
-        agent.test()
-    else:
-        agent.train()
+    return Agent(env, args, hyper_params, models, optims, target_entropy)

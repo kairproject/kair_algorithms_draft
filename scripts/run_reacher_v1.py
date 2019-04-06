@@ -60,10 +60,16 @@ def main():
     # set a random seed
     common_utils.set_random_seed(args.seed, env)
 
-    # run
+    # agent initialization
     module_path = "examples.reacher-v1." + args.algo
-    example = importlib.import_module(module_path)
-    example.run(env, args, state_dim, action_dim)
+    agent = importlib.import_module(module_path)
+    agent.get(env, args, state_dim, action_dim)
+
+    # run
+    if args.test:
+        agent.test()
+    else:
+        agent.train()
 
 
 if __name__ == "__main__":

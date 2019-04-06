@@ -135,10 +135,4 @@ def run(env, args, state_dim, action_dim):
     noises = (exploration_noise, target_policy_noise)
 
     # create an agent
-    agent = Agent(env, args, hyper_params, models, optims, noises)
-
-    # run
-    if args.test:
-        agent.test()
-    else:
-        agent.train()
+    return Agent(env, args, hyper_params, models, optims, noises)
