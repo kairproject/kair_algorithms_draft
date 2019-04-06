@@ -11,13 +11,31 @@ from ros_interface import (
 
 
 class OpenManipulatorReacherEnv(gym.Env):
+    # TODO: write docstring
+    """Open Manipulator Reacher environment on gym.
+
+    Attributes:
+        cfg (dict): environment config
+        env_mode (str): select mode (sim, real)
+        _max_episode_steps (int): max steps per episodes
+        reward_rescale_ratio (float):
+        reward_func (str): function name for calculating reward
+
+    """
+    # TODO: cfg or config
     def __init__(self, cfg):
+        """Initialization.
+
+        Args:
+            cfg (dict): environment config
+
+        """
         self.cfg = cfg
-        self.env_name = self.cfg.env_name
-        self.env_mode = self.cfg.env_mode
-        self._max_episode_steps = self.cfg.max_episode_steps
-        self.reward_rescale_ratio = self.cfg.reward_rescale_ratio
-        self.reward_func = self.cfg.reward_func
+        self.env_name = self.cfg["ENV_NAME"]
+        self.env_mode = self.cfg["ENV_MODE"]
+        self._max_episode_steps = self.cfg["MAX_EPISODE_STEPS"]
+        self.reward_rescale_ratio = self.cfg["REWARD_RESCALE_RATIO"]
+        self.reward_func = self.cfg["REWARD_FUNC"]
 
         assert self.env_mode in ["sim", "real"]
         if self.env_mode == "sim":
@@ -34,6 +52,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         self.seed()
 
     def seed(self, seed=None):
+        """Set random seed."""
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
@@ -63,9 +82,9 @@ class OpenManipulatorReacherEnv(gym.Env):
         if self.env_mode == "sim":
             self.reward = self.compute_reward()
             if self.ros_interface.check_for_termination():
-                print("Terminates current Episode : OUT OF BOUNDARY")
+                print ("Terminates current Episode : OUT OF BOUNDARY")
             elif self.ros_interface.check_for_success():
-                print("Succeeded current Episode")
+                print ("Succeeded current Episode")
         obs = self.ros_interface.get_observation()
 
         self.episode_steps += 1
@@ -105,7 +124,7 @@ class OpenManipulatorReacherEnv(gym.Env):
             reward = reward.astype(np.float32)
         elif self.reward_func == "l2":
             # - L2 distance
-            reward = - cur_dist
+            reward = -cur_dist
         else:
             raise ValueError
 

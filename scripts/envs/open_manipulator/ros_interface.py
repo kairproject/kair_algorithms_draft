@@ -8,7 +8,6 @@ import numpy as np
 
 import rospkg  # noqa
 import rospy  # noqa
-from config import *  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel
 from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
@@ -17,12 +16,14 @@ from std_msgs.msg import Float64
 
 
 class OpenManipulatorRosBaseInterface(object):
+    """Open Manipulator Interface based on ROS."""
 
     __metaclass__ = ABCMeta
 
     def __init__(self, cfg):
+        """Initialization."""
         self.cfg = cfg
-        self.train_mode = self.cfg.train_mode
+        self.train_mode = self.cfg["TRAIN_MODE"]
 
         self.joint_speeds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -33,13 +34,15 @@ class OpenManipulatorRosBaseInterface(object):
         self.termination_count = 0
         self.success_count = 0
 
-        self.publish_node()
-        self.subscribe_node()
+        self.init_publish_node()
+        self.init_subscribe_node()
         self.init_robot_pose()
 
         rospy.on_shutdown(self.delete_target_block)
 
-    def publish_node(self):
+    def init_publish_node(self):
+        # TODO: write docstring
+
         self.pub_gripper_position = rospy.Publisher(
             "/open_manipulator/gripper_position/command", Float64, queue_size=1
         )
@@ -62,7 +65,9 @@ class OpenManipulatorRosBaseInterface(object):
         self.joints_position_cmd = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.kinematics_cmd = [0.0, 0.0, 0.0]
 
-    def subscribe_node(self):
+    def init_subscribe_node(self):
+        # TODO: write docstring
+
         self.sub_joint_state = rospy.Subscriber(
             "/open_manipulator/joint_states", JointState, self.joint_state_callback
         )
@@ -87,12 +92,20 @@ class OpenManipulatorRosBaseInterface(object):
         self.joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_efforts = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-        self.gripper_position = [0.0, 0.0, 0.0]
-        self.gripper_orientiation = [0.0, 0.0, 0.0]
-        self.distance_threshold = distance_threshold
+        self._gripper_position = [0.0, 0.0, 0.0]
+        self._gripper_orientation = [0.0, 0.0, 0.0]
+        self.distance_threshold = self.cfg["DISTANCE_THRESHOLD"]
 
         self.moving_state = ""
         self.actuator_state = ""
+
+    def init_robot_pose(self):
+        """Initialize robot gripper and joints position."""
+        self.pub_gripper_position.publish(np.random.uniform(0.0, 0.1))
+        self.pub_joint1_position.publish(np.random.uniform(-0.1, 0.1))
+        self.pub_joint2_position.publish(np.random.uniform(-0.1, 0.1))
+        self.pub_joint3_position.publish(np.random.uniform(-0.1, 0.1))
+        self.pub_joint4_position.publish(np.random.uniform(-0.1, 0.1))
 
     def joint_state_callback(self, msg):
         """Callback function of joint states subscriber.
@@ -100,11 +113,11 @@ class OpenManipulatorRosBaseInterface(object):
         Args:
             msg (JointState):  Callback message contains joint state.
         """
-        self.joints_states = msg
-        self.joint_names = self.joints_states.name
-        self.joint_positions = self.joints_states.position
-        self.joint_velocities = self.joints_states.velocity
-        self.joint_efforts = self.joints_states.effort
+        joints_states = msg
+        self.joint_names = joints_states.name
+        self.joint_positions = joints_states.position
+        self.joint_velocities = joints_states.velocity
+        self.joint_efforts = joints_states.effort
         # penalize jerky motion in reward for shaped reward setting.
         self.squared_sum_vel = np.linalg.norm(np.array(self.joint_velocities))
 
@@ -116,17 +129,17 @@ class OpenManipulatorRosBaseInterface(object):
         """
         self.kinematics_pose = msg
         _gripper_position = self.kinematics_pose.pose.position
-        self.gripper_position = [
+        self._gripper_position = [
             _gripper_position.x,
             _gripper_position.y,
             _gripper_position.z,
         ]
-        _gripper_orientiation = self.kinematics_pose.pose.orientation
-        self.gripper_orientiation = [
-            _gripper_orientiation.x,
-            _gripper_orientiation.y,
-            _gripper_orientiation.z,
-            _gripper_orientiation.w,
+        _gripper_orientation = self.kinematics_pose.pose.orientation
+        self._gripper_orientation = [
+            _gripper_orientation.x,
+            _gripper_orientation.y,
+            _gripper_orientation.z,
+            _gripper_orientation.w,
         ]
 
     def robot_state_callback(self, msg):
@@ -151,38 +164,88 @@ class OpenManipulatorRosBaseInterface(object):
                 break
         return True
 
-    def get_joints_states(self):
-        """Returns current joints states of robot including position,
-        velocity, effort.
+    @property
+    def observation_space(self):
+        """Return the open manipulator's state space for this specific environment."""
+        return gym.spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=self.cfg["OBSERVATION_DIM"],
+            dtype=np.float32,
+        )
+
+    @property
+    def action_space(self):
+        """Return the open manipulator's action space for this specific environment."""
+        control_mode = self.cfg["CONTROL_MODE"]
+
+        if control_mode == "position":
+            joint_limits = self.cfg["JOINT_LIMITS"]
+
+            lower_bounds = np.array(
+                [
+                    joint_limits["LOW"]["J1"],
+                    joint_limits["LOW"]["J2"],
+                    joint_limits["LOW"]["J3"],
+                    joint_limits["LOW"]["J4"],
+                    joint_limits["LOW"]["GRIP"],
+                ]
+            )
+            upper_bounds = np.array(
+                [
+                    joint_limits["HIGH"]["J1"],
+                    joint_limits["HIGH"]["J2"],
+                    joint_limits["HIGH"]["J3"],
+                    joint_limits["HIGH"]["J4"],
+                    joint_limits["HIGH"]["GRIP"],
+                ]
+            )
+        elif control_mode == "velocity":
+            raise NotImplementedError(
+                "Control mode %s is not implemented yet." % control_mode
+            )
+
+        elif control_mode == "effort":
+            raise NotImplementedError(
+                "Control mode %s is not implemented yet." % control_mode
+            )
+        else:
+            raise ValueError("Control mode %s is not known!" % control_mode)
+        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
+        return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
+
+    @property
+    def joints_states(self):
+        """Returns current joints states of robot including position, velocity, effort.
 
         Returns:
             Tuple of JointState
         """
         return self.joint_positions, self.joint_velocities, self.joint_efforts
 
-    def get_gripper_pose(self):
-        """Returns gripper end effector position.
-
-        Returns:
-            Tuple of Pose
-        """
-        return self.gripper_position, self.gripper_orientiation
-
-    def get_gripper_position(self):
+    @property
+    def gripper_position(self):
         """Returns gripper end effector position.
 
         Returns:
             Position
         """
-        return self.gripper_position
+        return self._gripper_position
 
-    def get_observation(self):
+    @property
+    def gripper_orientation(self):
+        """Returns gripper orientation.
+
+        Returns:
+            Orientation
         """
-        Get robot observation.
-        :return: robot observation
-        """
-        gripper_pos = np.array(self.gripper_position)
-        gripper_ori = np.array(self.gripper_orientiation)
+        return self._gripper_orientation
+
+    @property
+    def observation(self):
+        """Get robot observation."""
+        gripper_pos = np.array(self._gripper_position)
+        gripper_ori = np.array(self._gripper_orientation)
 
         # joint space
         robot_joint_angles = np.array(self.joint_positions)
@@ -200,70 +263,13 @@ class OpenManipulatorRosBaseInterface(object):
         )
         return obs
 
-    @property
-    def action_space(self):
-        """ return the open manipulator's action space for this specific environment.
-        """
-        if control_mode == "position":
-            lower_bounds = np.array(
-                [
-                    joint_limits["lo"]["j1"],
-                    joint_limits["lo"]["j2"],
-                    joint_limits["lo"]["j3"],
-                    joint_limits["lo"]["j4"],
-                    joint_limits["lo"]["grip"],
-                ]
-            )
-            upper_bounds = np.array(
-                [
-                    joint_limits["hi"]["j1"],
-                    joint_limits["hi"]["j2"],
-                    joint_limits["hi"]["j3"],
-                    joint_limits["hi"]["j4"],
-                    joint_limits["hi"]["grip"],
-                ]
-            )
-        elif control_mode == "velocity":
-            raise NotImplementedError(
-                "Control mode %s is not implemented yet." % control_mode
-            )
-
-        elif control_mode == "effort":
-            raise NotImplementedError(
-                "Control mode %s is not implemented yet." % control_mode
-            )
-        else:
-            raise ValueError("Control mode %s is not known!" % control_mode)
-        print(lower_bounds, upper_bounds, action_dim)
-        return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
-
-    @property
-    def observation_space(self):
-        """ return the open manipulator's state space for this specific environment.
-        """
-        return gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=observation_dim, dtype=np.float32
-        )
-
     def set_joints_position(self, joints_angles):
-        """Move joints using joint position command publishers.
-
-        Args:
-            joints_angles (Float64): Move joints with angles.
-        """
+        """Move joints using joint position command publishers."""
         self.pub_gripper_position.publish(joints_angles[0])
         self.pub_joint1_position.publish(joints_angles[1])
         self.pub_joint2_position.publish(joints_angles[2])
         self.pub_joint3_position.publish(joints_angles[3])
         self.pub_joint4_position.publish(joints_angles[4])
-
-    def init_robot_pose(self):
-        """Initialize robot gripper and joints position."""
-        self.pub_gripper_position.publish(np.random.uniform(0.0, 0.1))
-        self.pub_joint1_position.publish(np.random.uniform(-0.1, 0.1))
-        self.pub_joint2_position.publish(np.random.uniform(-0.1, 0.1))
-        self.pub_joint3_position.publish(np.random.uniform(-0.1, 0.1))
-        self.pub_joint4_position.publish(np.random.uniform(-0.1, 0.1))
 
     def _geom_interpolation(self, in_rad, out_rad, in_z, out_z, query):
         """interpolates along the outer shell of work space, based on z-position.
@@ -283,7 +289,7 @@ class OpenManipulatorRosBaseInterface(object):
         dist = self.get_dist()
         if dist < self.distance_threshold:
             self.success_count += 1
-            if self.success_count == suc_count:
+            if self.success_count == self.cfg["SUCCESS_COUNT"]:
                 self.done = True
                 self.success_count = 0
                 return True
@@ -302,13 +308,23 @@ class OpenManipulatorRosBaseInterface(object):
         """
         _ee_pose = self.get_gripper_position()
 
+        inner_rad, outer_rad, lower_rad, inner_z, outer_z, lower_z, term_count = (
+            self.cfg["INNER_RADIAN"],
+            self.cfg["OUTER_RADIAN"],
+            self.cfg["LOWER_RADIAN"],
+            self.cfg["INNER_Z"],
+            self.cfg["OUTER_Z"],
+            self.cfg["LOWER_Z"],
+            self.cfg["TERM_COUNT"],
+        )
+
         rob_rad = np.linalg.norm([_ee_pose[0], _ee_pose[1]])
         rob_z = _ee_pose[2]
-        if self.joint_positions[0] <= abs(joint_limits["hi"]["j1"] / 2):
-            if rob_rad < inner_rad:
+        if self.joint_positions[0] <= abs(self.cfg["JOINT_LIMITS"]["HIGH"]["J1"] / 2):
+            if rob_rad < self.cfg["INNER_RADIAN"]:
                 self.termination_count += 1
                 rospy.logwarn("OUT OF BOUNDARY : exceeds inner radius limit")
-            elif inner_rad <= rob_rad < outer_rad:
+            elif self.cfg["INNER_RADIAN"] <= rob_rad < self.cfg["OUTER_RADIAN"]:
                 upper_z = self._geom_interpolation(
                     inner_rad, outer_rad, inner_z, outer_z, rob_rad
                 )
@@ -343,14 +359,15 @@ class OpenManipulatorRosBaseInterface(object):
 
 
 class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
+    # TODO: write docstring
+    """Open Manipulator Interface based on ROS for Gazebo."""
+
     def __init__(self, cfg):
         rospy.init_node("OpenManipulatorRosGazeboInterface")
         super(OpenManipulatorRosGazeboInterface, self).__init__(cfg)
 
     def reset_gazebo_world(self, block_pose=None):
-        """Initialize randomly the state of robot agent and
-        surrounding envs (including target obj.).
-        """
+        """Initialize randomly the state of robot agent and surrounding envs (including target obj.)."""
         if block_pose is not None:
             assert self.train_mode is True
 
@@ -368,6 +385,12 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         """Set target block Gazebo model"""
         # random generated blocks for train
         if block_pose is None:
+            polar_rad, polar_theta, overhead_orientation = (
+                np.random.uniform(self.cfg["POLAR_RADIAN_BOUNDARY"]),
+                np.random.uniform(self.cfg["POLAR_THETA_BOUNDARY"]),
+                self.cfg["OVERHEAD_ORIENTATION"],
+            )
+
             block_pose = Pose()
             block_pose.position.x = polar_rad * cos(polar_theta)
             block_pose.position.y = polar_rad * sin(polar_theta)
@@ -376,8 +399,6 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
 
         block_reference_frame = "world"
         model_path = rospkg.RosPack().get_path("kair_algorithms") + "/urdf/"
-
-        block_xml = ""
 
         with open(model_path + "block/model.urdf", "r") as block_file:
             block_xml = block_file.read().replace("\n", "")
@@ -432,6 +453,9 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
 
 
 class OpenManipulatorRosRealInterface(OpenManipulatorRosBaseInterface):
+    # TODO: write docstring
+    """Open Manipulator Interface based on ROS for real environment."""
+
     def __init__(self, cfg):
         rospy.init_node("OpenManipulatorRosRealInterface")
         super(OpenManipulatorRosRealInterface, self).__init__(cfg)
