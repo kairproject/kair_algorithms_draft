@@ -4,7 +4,7 @@
 import operator
 
 
-class SegmentTree:
+class SegmentTree(object):
     """ Create SegmentTree.
 
     Taken from OpenAI baselines github repository:

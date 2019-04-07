@@ -11,7 +11,7 @@ from algorithms.common.helper_functions import get_n_step_info
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class ReplayBuffer:
+class ReplayBuffer(object):
     """Fixed-size buffer to store experience tuples.
 
     Taken from Udacity deep-reinforcement-learning github repository:
@@ -79,7 +79,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-class NStepTransitionBuffer:
+class NStepTransitionBuffer(object):
     """Fixed-size buffer to store experience tuples.
 
     Attributes:

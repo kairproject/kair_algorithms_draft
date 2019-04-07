@@ -14,7 +14,7 @@ import numpy as np
 import torch
 
 
-class AbstractAgent:
+class AbstractAgent(object):
     """Abstract Agent used for all agents.
 
     Attributes:

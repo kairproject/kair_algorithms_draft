@@ -7,7 +7,7 @@ import random
 import numpy as np
 
 
-class GaussianNoise:
+class GaussianNoise(object):
     """Gaussian Noise.
 
     Taken from https://github.com/vitchyr/rlkit
@@ -28,7 +28,7 @@ class GaussianNoise:
         return np.random.normal(0, sigma, size=self.action_dim)
 
 
-class OUNoise:
+class OUNoise(object):
     """Ornstein-Uhlenbeck process.
 
     Taken from Udacity deep-reinforcement-learning github repository:
