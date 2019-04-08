@@ -3,13 +3,13 @@
 from math import cos, pi, sin
 
 import numpy as np
+from config.env import open_manipulator
 
 import rospy
 from envs.open_manipulator import OpenManipulatorReacherEnv
 from geometry_msgs.msg import Pose, Quaternion
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
-from scripts.config.env import open_manipulator
 
 overhead_orientation = Quaternion(
     x=-0.00142460053167, y=0.999994209902, z=-0.00177030764765, w=0.00253311793936

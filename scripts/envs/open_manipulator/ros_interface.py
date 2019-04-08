@@ -165,17 +165,54 @@ class OpenManipulatorRosBaseInterface(object):
         return True
 
     @property
-    def observation_space(self):
-        """Return the open manipulator's state space for this specific environment."""
-        return gym.spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=self.cfg["OBSERVATION_DIM"],
-            dtype=np.float32,
-        )
+    def joints_states(self):
+        """Returns current joints states of robot including position, velocity, effort.
+
+        Returns:
+            Tuple of JointState
+        """
+        return self.joint_positions, self.joint_velocities, self.joint_efforts
 
     @property
-    def action_space(self):
+    def gripper_position(self):
+        """Returns gripper end effector position.
+
+        Returns:
+            Position
+        """
+        return self._gripper_position
+
+    @property
+    def gripper_orientation(self):
+        """Returns gripper orientation.
+
+        Returns:
+            Orientation
+        """
+        return self._gripper_orientation
+
+    def get_observation(self):
+        """Get robot observation."""
+        gripper_pos = np.array(self._gripper_position)
+        gripper_ori = np.array(self._gripper_orientation)
+
+        # joint space
+        robot_joint_angles = np.array(self.joint_positions)
+        robot_joint_velocities = np.array(self.joint_velocities)
+        robot_joint_efforts = np.array(self.joint_efforts)
+
+        obs = np.concatenate(
+            (
+                gripper_pos,
+                gripper_ori,
+                robot_joint_angles,
+                robot_joint_velocities,
+                robot_joint_efforts,
+            )
+        )
+        return obs
+
+    def get_action_space(self):
         """Return the open manipulator's action space for this specific environment."""
         control_mode = self.cfg["CONTROL_MODE"]
 
@@ -214,54 +251,14 @@ class OpenManipulatorRosBaseInterface(object):
         print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
-    @property
-    def joints_states(self):
-        """Returns current joints states of robot including position, velocity, effort.
-
-        Returns:
-            Tuple of JointState
-        """
-        return self.joint_positions, self.joint_velocities, self.joint_efforts
-
-    @property
-    def gripper_position(self):
-        """Returns gripper end effector position.
-
-        Returns:
-            Position
-        """
-        return self._gripper_position
-
-    @property
-    def gripper_orientation(self):
-        """Returns gripper orientation.
-
-        Returns:
-            Orientation
-        """
-        return self._gripper_orientation
-
-    @property
-    def observation(self):
-        """Get robot observation."""
-        gripper_pos = np.array(self._gripper_position)
-        gripper_ori = np.array(self._gripper_orientation)
-
-        # joint space
-        robot_joint_angles = np.array(self.joint_positions)
-        robot_joint_velocities = np.array(self.joint_velocities)
-        robot_joint_efforts = np.array(self.joint_efforts)
-
-        obs = np.concatenate(
-            (
-                gripper_pos,
-                gripper_ori,
-                robot_joint_angles,
-                robot_joint_velocities,
-                robot_joint_efforts,
-            )
+    def get_observation_space(self):
+        """Return the open manipulator's state space for this specific environment."""
+        return gym.spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=self.cfg["OBSERVATION_DIM"],
+            dtype=np.float32,
         )
-        return obs
 
     def set_joints_position(self, joints_angles):
         """Move joints using joint position command publishers."""
