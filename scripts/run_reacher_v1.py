@@ -59,9 +59,9 @@ def main():
     common_utils.set_random_seed(args.seed, env)
 
     # agent initialization
-    module_path = "examples.reacher-v1." + args.algo
+    module_path = "config.agent.reacher-v1." + args.algo
     agent = importlib.import_module(module_path)
-    agent.get(env, args)
+    agent = agent.get(env, args)
 
     # run
     if args.test:

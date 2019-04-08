@@ -60,9 +60,9 @@ def main():
     common_utils.set_random_seed(args.seed, env)
 
     # run
-    module_path = "examples.lunarlander_continuous_v2." + args.algo
+    module_path = "config.agent.lunarlander_continuous_v2." + args.algo
     agent = importlib.import_module(module_path)
-    agent.get(env, args)
+    agent = agent.get(env, args)
 
     # run
     if args.test:
