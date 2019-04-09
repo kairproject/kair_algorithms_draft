@@ -3,6 +3,7 @@ from math import pi
 from geometry_msgs.msg import Quaternion
 
 config = {
+    "ENV_NAME": "OpenManipulatorReacher",
     "TERM_COUNT": 10,
     "SUCCESS_COUNT": 10,
     "OVERHEAD_ORIENTATION": Quaternion(
