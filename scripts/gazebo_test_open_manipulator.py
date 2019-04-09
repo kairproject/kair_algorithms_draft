@@ -5,26 +5,26 @@ from math import cos, pi, sin
 import numpy as np
 
 import rospy
-from envs.open_manipulator import OpenManipulatorEnv
+from config.environment import open_manipulator
+from envs.open_manipulator import OpenManipulatorReacherEnv
 from geometry_msgs.msg import Pose, Quaternion
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
 from open_manipulator_msgs.srv import SetJointPosition, SetKinematicsPose
 
 overhead_orientation = Quaternion(
-    x=-0.00142460053167,
-    y=0.999994209902,
-    z=-0.00177030764765,
-    w=0.00253311793936)
+    x=-0.00142460053167, y=0.999994209902, z=-0.00177030764765, w=0.00253311793936
+)
+
+cfg = open_manipulator
 
 
 def test_reset():
-    env = OpenManipulatorEnv()
+    env = OpenManipulatorReacherEnv(cfg)
     _ = env.reset()
-    # assert obs in specific boundary
 
 
 def test_forward():
-    env = OpenManipulatorEnv()
+    env = OpenManipulatorReacherEnv(cfg)
     _ = env.reset()
     _pose = Pose()
     _pose.position.x = 0.4
@@ -40,7 +40,9 @@ def test_forward():
     forward_pose.max_velocity_scaling_factor = 0.0
     forward_pose.tolerance = 0.0
     try:
-        task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+        task_space_srv = rospy.ServiceProxy(
+            "/open_manipulator/goal_task_space_path", SetKinematicsPose
+        )
         _ = task_space_srv("arm", "gripper", forward_pose, 2.0)
     except rospy.ServiceException as e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -48,12 +50,14 @@ def test_forward():
 
 def test_rotate():
     _qpose = JointPosition()
-    _qpose.joint_name = ['joint1', 'joint2', 'joint3', 'joint4']
+    _qpose.joint_name = ["joint1", "joint2", "joint3", "joint4"]
     _qpose.position = [0.5, 0.0, 0.0, 0.5]
     _qpose.max_accelerations_scaling_factor = 0.0
     _qpose.max_velocity_scaling_factor = 0.0
     try:
-        task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_joint_space_path_from_present', SetJointPosition)
+        task_space_srv = rospy.ServiceProxy(
+            "/open_manipulator/goal_joint_space_path_from_present", SetJointPosition
+        )
         _ = task_space_srv("arm", _qpose, 2.0)
     except rospy.ServiceException, e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
@@ -63,36 +67,33 @@ def test_rotate():
         _ = task_space_srv("arm", _qpose, 2.0)
     except rospy.ServiceException, e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
-    # define actions
-    # assert obs in specific boundary
 
 
 def test_block_loc():
-    env = OpenManipulatorEnv()
+    env = OpenManipulatorReacherEnv(cfg)
     for iter in range(20):
         b_pose = Pose()
-        b_pose.position.x = np.random.uniform(0.15, .20)
+        b_pose.position.x = np.random.uniform(0.15, 0.20)
         b_pose.position.y = np.random.uniform(-0.2, 0.2)
         b_pose.position.z = 0.00
         b_pose.orientation = overhead_orientation
-        env._load_target_block(block_pose=b_pose)
+        env.ros_interface.set_target_block()
         rospy.sleep(2.0)
-        env._delete_target_block()
-    # block generation code
-    # assert block in specific boundary (gripper's movable area)
+        env.ros_interface.delete_target_block()
 
 
 def test_achieve_goal():
-    env = OpenManipulatorEnv()
+    env = OpenManipulatorReacherEnv(cfg)
     for iter in range(20):
-        b_pose = Pose()
-        b_pose.position.x = np.random.uniform(0.25, .6)
-        b_pose.position.y = np.random.uniform(-0.4, 0.4)
-        b_pose.position.z = 0.00
-        b_pose.orientation = overhead_orientation
-        env._load_target_block(block_pose=b_pose)
+        block_pose = Pose()
+        block_pose.position.x = np.random.uniform(0.25, 0.6)
+        block_pose.position.y = np.random.uniform(-0.4, 0.4)
+        block_pose.position.z = 0.00
+        block_pose.orientation = overhead_orientation
+        env.ros_interface.set_target_block(block_pose)
+
         r_pose = Pose()
-        r_pose.position = b_pose.position
+        r_pose.position = block_pose.position
         r_pose.position.z = 0.08
         forward_pose = KinematicsPose()
         forward_pose.pose = r_pose
@@ -100,49 +101,49 @@ def test_achieve_goal():
         forward_pose.max_velocity_scaling_factor = 0.0
         forward_pose.tolerance = 0.0
         try:
-            task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+            task_space_srv = rospy.ServiceProxy(
+                "/open_manipulator/goal_task_space_path", SetKinematicsPose
+            )
             _ = task_space_srv("arm", "gripper", forward_pose, 2.0)
         except rospy.ServiceException, e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
         rospy.sleep(5.0)
-        env._delete_target_block()
+        env.ros_interface.delete_target_block()
 
 
 def test_workspace_limit():
-    """ TODO: add static block
-    """
-    env = OpenManipulatorEnv()
+    env = OpenManipulatorReacherEnv(cfg)
     for iter in range(100):
         _polar_rad = np.random.uniform(0.134, 0.32)
         _polar_theta = np.random.uniform(-pi * 0.7 / 4, pi * 0.7 / 4)
 
-        b_pose = Pose()
-        b_pose.position.x = _polar_rad * cos(_polar_theta)
-        b_pose.position.y = _polar_rad * sin(_polar_theta)
-        b_pose.position.z = np.random.uniform(0.05, 0.28)
-        b_pose.orientation = overhead_orientation
-        env._load_target_block(block_pose=b_pose)
+        block_pose = Pose()
+        block_pose.position.x = _polar_rad * cos(_polar_theta)
+        block_pose.position.y = _polar_rad * sin(_polar_theta)
+        block_pose.position.z = np.random.uniform(0.05, 0.28)
+        block_pose.orientation = overhead_orientation
+        env.ros_interface.set_target_block(block_pose)
+
         r_pose = Pose()
-        r_pose.position = b_pose.position
+        r_pose.position = block_pose.position
         forward_pose = KinematicsPose()
         forward_pose.pose = r_pose
         forward_pose.max_accelerations_scaling_factor = 0.0
         forward_pose.max_velocity_scaling_factor = 0.0
         forward_pose.tolerance = 0.0
         try:
-            task_space_srv = rospy.ServiceProxy('/open_manipulator/goal_task_space_path', SetKinematicsPose)
+            task_space_srv = rospy.ServiceProxy(
+                "/open_manipulator/goal_task_space_path", SetKinematicsPose
+            )
             _ = task_space_srv("arm", "gripper", forward_pose, 3.0)
         except rospy.ServiceException, e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
         rospy.sleep(3.0)
-        env._check_for_termination()
-        env._delete_target_block()
-    # define actions
-    # define goal
-    # assert gripper reach goal
+        env.ros_interface.check_for_termination()
+        env.ros_interface.delete_target_block()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # test_reset()
     # test_forward()
     # test_rotate()

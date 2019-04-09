@@ -22,27 +22,29 @@ hyper_params = {
     "BATCH_SIZE": 100,
     "LR_ACTOR": 1e-3,
     "LR_CRITIC": 1e-3,
-    "WEIGHT_DECAY": 0.000,
+    "WEIGHT_DECAY": 0.0,
     "EXPLORATION_NOISE": 0.1,
     "TARGET_POLICY_NOISE": 0.2,
     "TARGET_POLICY_NOISE_CLIP": 0.5,
     "POLICY_UPDATE_FREQ": 2,
     "INITIAL_RANDOM_ACTIONS": 1e4,
+    "NETWORK": {"ACTOR_HIDDEN_SIZES": [400, 300], "CRITIC_HIDDEN_SIZES": [400, 300]},
 }
 
 
-def run(env, args, state_dim, action_dim):
+def get(env, args):
     """Run training or test.
 
     Args:
         env (gym.Env): openAI Gym environment with continuous action space
         args (argparse.Namespace): arguments including training settings
-        state_dim (int): dimension of states
-        action_dim (int): dimension of actions
 
     """
-    hidden_sizes_actor = [400, 300]
-    hidden_sizes_critic = [400, 300]
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+
+    hidden_sizes_actor = hyper_params["NETWORK"]["ACTOR_HIDDEN_SIZES"]
+    hidden_sizes_critic = hyper_params["NETWORK"]["CRITIC_HIDDEN_SIZES"]
 
     # create actor
     actor = MLP(
@@ -123,10 +125,4 @@ def run(env, args, state_dim, action_dim):
     noises = (exploration_noise, target_policy_noise)
 
     # create an agent
-    agent = Agent(env, args, hyper_params, models, optims, noises)
-
-    # run
-    if args.test:
-        agent.test()
-    else:
-        agent.train()
+    return Agent(env, args, hyper_params, models, optims, noises)

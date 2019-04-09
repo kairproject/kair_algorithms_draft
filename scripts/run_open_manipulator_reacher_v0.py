@@ -11,7 +11,8 @@ import argparse
 import importlib
 
 import algorithms.common.helper_functions as common_utils
-from envs.open_manipulator.open_manipulator import OpenManipulatorEnv
+from config.environment.open_manipulator import config as env_cfg
+from envs.open_manipulator.open_manipulator_reacher_env import OpenManipulatorReacherEnv
 
 # configurations
 parser = argparse.ArgumentParser(description="Pytorch RL algorithms")
@@ -54,18 +55,21 @@ args = parser.parse_args()
 def main():
     """Main."""
     # env initialization
-    env = OpenManipulatorEnv()
-    # env = gym.make("Omreacher-v0")
-    # TODO: uncomment here.
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
+    env = OpenManipulatorReacherEnv(env_cfg)
+
     # set a random seed
-    # common_utils.set_random_seed(args.seed, env)
+    common_utils.set_random_seed(args.seed, env)
+
+    # agent initialization
+    module_path = "config.agent.open_manipulator_reacher_v0." + args.algo
+    agent = importlib.import_module(module_path)
+    agent = agent.get(env, args)
 
     # run
-    module_path = "examples.open_manipulator_reacher_v0." + args.algo
-    example = importlib.import_module(module_path)
-    example.run(env, args, state_dim, action_dim)
+    if args.test:
+        agent.test()
+    else:
+        agent.train()
 
 
 if __name__ == "__main__":

@@ -54,16 +54,20 @@ def main():
     """Main."""
     # env initialization
     env = gym.make("Reacher-v1")
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
 
     # set a random seed
     common_utils.set_random_seed(args.seed, env)
 
+    # agent initialization
+    module_path = "config.agent.reacher-v1." + args.algo
+    agent = importlib.import_module(module_path)
+    agent = agent.get(env, args)
+
     # run
-    module_path = "examples.reacher-v1." + args.algo
-    example = importlib.import_module(module_path)
-    example.run(env, args, state_dim, action_dim)
+    if args.test:
+        agent.test()
+    else:
+        agent.train()
 
 
 if __name__ == "__main__":

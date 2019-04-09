@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Run module for SACfD on LunarLanderContinuous-v2.
+"""Run module for TD3 on LunarLanderContinuous-v2.
 
-- Author: Seungjae Ryan Lee
-- Contact: seungjaeryanlee@gmail.com
+- Author: whikwon
+- Contact: whikwon@gmail.com
 """
 
 import torch
@@ -10,51 +10,41 @@ import torch.optim as optim
 
 from algorithms.common.networks.mlp import MLP
 from algorithms.common.noise import GaussianNoise
-from algorithms.fd.td3_agent import Agent
+from algorithms.td3.agent import Agent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # hyper parameters
-# TODO Tune hyperparameters on LunarLander-v2
-
-# hyper parameters
 hyper_params = {
-    "N_STEP": 1,
     "GAMMA": 0.99,
     "TAU": 5e-3,
     "BUFFER_SIZE": int(1e6),
     "BATCH_SIZE": 100,
     "LR_ACTOR": 1e-3,
     "LR_CRITIC": 1e-3,
+    "WEIGHT_DECAY": 0.000,
     "EXPLORATION_NOISE": 0.1,
     "TARGET_POLICY_NOISE": 0.2,
     "TARGET_POLICY_NOISE_CLIP": 0.5,
     "POLICY_UPDATE_FREQ": 2,
     "INITIAL_RANDOM_ACTIONS": 1e4,
-    "PRETRAIN_STEP": 100,
-    "MULTIPLE_LEARN": 2,  # multiple learning updates
-    "LAMBDA1": 1.0,  # N-step return weight
-    "LAMBDA2": 1e-5,  # l2 regularization weight
-    "LAMBDA3": 1.0,  # actor loss contribution of prior weight
-    "PER_ALPHA": 0.3,
-    "PER_BETA": 1.0,
-    "PER_EPS": 1e-6,
-    "PER_EPS_DEMO": 1.0,
+    "NETWORK": {"ACTOR_HIDDEN_SIZES": [400, 300], "CRITIC_HIDDEN_SIZES": [400, 300]},
 }
 
 
-def run(env, args, state_dim, action_dim):
+def get(env, args):
     """Run training or test.
 
     Args:
         env (gym.Env): openAI Gym environment with continuous action space
         args (argparse.Namespace): arguments including training settings
-        state_dim (int): dimension of states
-        action_dim (int): dimension of actions
 
     """
-    hidden_sizes_actor = [400, 300]
-    hidden_sizes_critic = [400, 300]
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+
+    hidden_sizes_actor = hyper_params["NETWORK"]["ACTOR_HIDDEN_SIZES"]
+    hidden_sizes_critic = hyper_params["NETWORK"]["CRITIC_HIDDEN_SIZES"]
 
     # create actor
     actor = MLP(
@@ -107,13 +97,13 @@ def run(env, args, state_dim, action_dim):
     actor_optim = optim.Adam(
         actor.parameters(),
         lr=hyper_params["LR_ACTOR"],
-        weight_decay=hyper_params["LAMBDA2"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
 
     critic_optim = optim.Adam(
         critic_parameters,
         lr=hyper_params["LR_CRITIC"],
-        weight_decay=hyper_params["LAMBDA2"],
+        weight_decay=hyper_params["WEIGHT_DECAY"],
     )
 
     # noise
@@ -135,10 +125,4 @@ def run(env, args, state_dim, action_dim):
     noises = (exploration_noise, target_policy_noise)
 
     # create an agent
-    agent = Agent(env, args, hyper_params, models, optims, noises)
-
-    # run
-    if args.test:
-        agent.test()
-    else:
-        agent.train()
+    return Agent(env, args, hyper_params, models, optims, noises)

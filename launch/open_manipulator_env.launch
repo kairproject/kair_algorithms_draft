@@ -47,6 +47,4 @@
 
      <!-- ros_control robotis manipulator launch file -->
     <include file="$(find open_manipulator_gazebo)/launch/open_manipulator_controller.launch"/>   
-
-
 </launch>
