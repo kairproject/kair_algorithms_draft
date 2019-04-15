@@ -43,6 +43,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         else:
             self.ros_interface = OpenManipulatorRosRealInterface()
 
+        self.episode_steps = 0
         self.done = False
         self.reward = 0
 
@@ -67,6 +68,7 @@ class OpenManipulatorReacherEnv(gym.Env):
             Tuple of obs, reward_rescale * reward, done
         """
         self.done = False
+        self.episode_steps += 1
 
         act = action.flatten().tolist()
         self.ros_interface.set_joints_position(act)
@@ -79,6 +81,10 @@ class OpenManipulatorReacherEnv(gym.Env):
                 self.done = True
 
         obs = self.ros_interface.get_observation()
+
+        if self.episode_steps == self._max_episode_steps:
+            self.done = True
+            self.episode_steps = 0
 
         return obs, self.reward_rescale_ratio * self.reward, self.done, None
 
