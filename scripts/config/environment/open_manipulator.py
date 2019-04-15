@@ -2,6 +2,7 @@ from math import pi
 
 from geometry_msgs.msg import Quaternion
 
+
 config = {
     "ENV_NAME": "OpenManipulatorReacher",
     "TERM_COUNT": 10,
@@ -41,7 +42,6 @@ config = {
     "LOWER_Z": 0.116,
     "ENV_MODE": "sim",
     "TRAIN_MODE": True,
-    "MAX_EPISODE_STEPS": 100,
     "DISTANCE_THRESHOLD": 0.1,
     "REWARD_RESCALE_RATIO": 1.0,
     "REWARD_FUNC": "l2",

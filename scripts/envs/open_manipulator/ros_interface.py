@@ -287,7 +287,7 @@ class OpenManipulatorRosBaseInterface(object):
         if dist < self.distance_threshold:
             self.success_count += 1
             if self.success_count == self.cfg["SUCCESS_COUNT"]:
-                self.done = True
+                print("Current episode succeeded")
                 self.success_count = 0
                 return True
             else:
@@ -344,7 +344,7 @@ class OpenManipulatorRosBaseInterface(object):
             rospy.logwarn("OUT OF BOUNDARY : joint_1_limit exceeds")
 
         if self.termination_count == term_count:
-            self.done = True
+            print("Current episode terminated")
             self.termination_count = 0
             return True
         else:

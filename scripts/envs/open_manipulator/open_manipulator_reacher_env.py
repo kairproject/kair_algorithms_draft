@@ -33,7 +33,6 @@ class OpenManipulatorReacherEnv(gym.Env):
         self.cfg = cfg
         self.env_name = self.cfg["ENV_NAME"]
         self.env_mode = self.cfg["ENV_MODE"]
-        self._max_episode_steps = self.cfg["MAX_EPISODE_STEPS"]
         self.reward_rescale_ratio = self.cfg["REWARD_RESCALE_RATIO"]
         self.reward_func = self.cfg["REWARD_FUNC"]
 
@@ -43,7 +42,6 @@ class OpenManipulatorReacherEnv(gym.Env):
         else:
             self.ros_interface = OpenManipulatorRosRealInterface()
 
-        self.episode_steps = 0
         self.done = False
         self.reward = 0
 
@@ -67,14 +65,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         Returns:
             Tuple of obs, reward_rescale * reward, done
         """
-        if action is None:
-            action = np.array([1, 1, 1, 1, 1, 1])
-
         self.done = False
-
-        if self.episode_steps == self._max_episode_steps:
-            self.done = True
-            self.episode_steps = 0
 
         act = action.flatten().tolist()
         self.ros_interface.set_joints_position(act)
@@ -82,12 +73,11 @@ class OpenManipulatorReacherEnv(gym.Env):
         if self.env_mode == "sim":
             self.reward = self.compute_reward()
             if self.ros_interface.check_for_termination():
-                print ("Terminates current Episode : OUT OF BOUNDARY")
+                self.done = True
             elif self.ros_interface.check_for_success():
-                print ("Succeeded current Episode")
-        obs = self.ros_interface.get_observation()
+                self.done = True
 
-        self.episode_steps += 1
+        obs = self.ros_interface.get_observation()
 
         return obs, self.reward_rescale_ratio * self.reward, self.done, None
 
