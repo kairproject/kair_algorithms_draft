@@ -5,6 +5,7 @@ from geometry_msgs.msg import Quaternion
 
 config = {
     "ENV_NAME": "OpenManipulatorReacher",
+    "MAX_EPISODE_STEPS": 100,
     "TERM_COUNT": 10,
     "SUCCESS_COUNT": 10,
     "OVERHEAD_ORIENTATION": Quaternion(

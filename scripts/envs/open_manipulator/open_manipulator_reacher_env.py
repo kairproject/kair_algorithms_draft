@@ -33,6 +33,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         self.cfg = cfg
         self.env_name = self.cfg["ENV_NAME"]
         self.env_mode = self.cfg["ENV_MODE"]
+        self._max_episode_steps = self.cfg["MAX_EPISODE_STEPS"]
         self.reward_rescale_ratio = self.cfg["REWARD_RESCALE_RATIO"]
         self.reward_func = self.cfg["REWARD_FUNC"]
 
