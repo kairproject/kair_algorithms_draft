@@ -39,8 +39,9 @@ class Agent(TD3Agent):
             # load demo replay memory
             # TODO: should make new demo to set protocol 2
             #       e.g. pickle.dump(your_object, your_file, protocol=2)
-            with open(self.args.demo_path, "rb") as f:
-                demos = pickle.load(f)
+#            with open(self.args.demo_path, "rb") as f:
+#                demos = pickle.load(f)
+            demos = []
 
             if self.use_n_step:
                 demos, demos_n_step = common_utils.get_n_step_info_from_demo(
@@ -91,20 +92,17 @@ class Agent(TD3Agent):
         )
         next_actions = (self.actor_target(next_states) + clipped_noise).clamp(-1.0, 1.0)
 
-        target_values1 = self.critic1_target(
-            torch.cat((next_states, next_actions), dim=-1)
-        )
-        target_values2 = self.critic2_target(
-            torch.cat((next_states, next_actions), dim=-1)
-        )
+        target_values1 = self.critic1_target(next_states, next_actions)
+        target_values2 = self.critic2_target(next_states, next_actions)
+
         target_values = torch.min(target_values1, target_values2)
         target_values = rewards + (gamma * target_values * masks).detach()
 
         # train critic
-        values1 = self.critic1(torch.cat((states, actions), dim=-1))
+        values1 = self.critic1(next_states, next_actions)
         critic1_loss_element_wise = (values1 - target_values.detach()).pow(2)
 
-        values2 = self.critic2(torch.cat((states, actions), dim=-1))
+        values2 = self.critic2(next_states, next_actions)
         critic2_loss_element_wise = (values2 - target_values.detach()).pow(2)
 
         return critic1_loss_element_wise, critic2_loss_element_wise
@@ -115,6 +113,12 @@ class Agent(TD3Agent):
         states, actions, rewards, next_states, dones, weights, indices, eps_d = (
             experiences
         )
+        # monkey spanner
+        states = states.view(-1, 1, 40, 40, 40)
+        next_states = next_states.view(-1, 1, 40, 40, 40)
+        actions = actions.view(-1, 1)
+        rewards = rewards.view(-1, 1)
+        experiences = states, actions, rewards, next_states, dones, weights, indices, eps_d
 
         gamma = self.hyper_params["GAMMA"]
         critic1_loss_element_wise, critic2_loss_element_wise = self._get_critic_loss(
@@ -149,9 +153,7 @@ class Agent(TD3Agent):
         if self.episode_steps % self.hyper_params["POLICY_UPDATE_FREQ"] == 0:
             # train actor
             actions = self.actor(states)
-            actor_loss_element_wise = -self.critic1(
-                torch.cat((states, actions), dim=-1)
-            )
+            actor_loss_element_wise = -self.critic1(states, actions)
             actor_loss = torch.mean(actor_loss_element_wise * weights)
             self.actor_optim.zero_grad()
             actor_loss.backward()
