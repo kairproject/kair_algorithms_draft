@@ -14,15 +14,14 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
 
         self.conv1 = nn.Conv3d(in_channel, 3, (3, 3, 3), 2, 1)
-        self.conv2 = nn.Conv3d(3, 128, (3, 3, 3), 2, 1)
-        self.conv3 = nn.Conv3d(128, 256, (3, 3, 3), 2, 1)
-        self.avg_pool4 = nn.AvgPool3d(5)
-        self.fc5 = nn.Linear(256, 512)
+        self.conv2 = nn.Conv3d(3, 32, (3, 3, 3), 2, 1)
+        self.conv3 = nn.Conv3d(32, 64, (3, 3, 3), 2, 1)
+        self.fc4 = nn.Linear(64*5*5*5, 256)
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+        self.fc4.bias.data.uniform_(-3e-3, 3e-3)
+        self.fc5 = nn.Linear(256, action_dim)
         self.fc5.weight.data.uniform_(-3e-3, 3e-3)
         self.fc5.bias.data.uniform_(-3e-3, 3e-3)
-        self.fc6 = nn.Linear(512, action_dim)
-        self.fc6.weight.data.uniform_(-3e-3, 3e-3)
-        self.fc6.bias.data.uniform_(-3e-3, 3e-3)
 
         self.max_action = max_action
 
@@ -30,9 +29,8 @@ class Actor(nn.Module):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
-        x = self.avg_pool4(x)
-        x = F.relu(self.fc5(x.view(x.size(0), -1)))
-        x = self.fc6(x)
+        x = F.relu(self.fc4(x.view(x.size(0), -1)))
+        x = self.fc5(x)
         x = self.max_action * torch.tanh(x)
         return x.squeeze()
 
@@ -43,24 +41,22 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
 
         self.conv1 = nn.Conv3d(in_channel, 3, (3, 3, 3), 2, 1)
-        self.conv2 = nn.Conv3d(3, 128, (3, 3, 3), 2, 1)
-        self.conv3 = nn.Conv3d(128, 256, (3, 3, 3), 2, 1)
-        self.avg_pool4 = nn.AvgPool3d(5)
+        self.conv2 = nn.Conv3d(3, 32, (3, 3, 3), 2, 1)
+        self.conv3 = nn.Conv3d(32, 64, (3, 3, 3), 2, 1)
 
-        self.fc5 = nn.Linear(256 + action_dim, 512)
+        self.fc4 = nn.Linear(64*5*5*5 + action_dim, 256)
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+        self.fc4.bias.data.uniform_(-3e-3, 3e-3)
+        self.fc5 = nn.Linear(256, 1)
         self.fc5.weight.data.uniform_(-3e-3, 3e-3)
         self.fc5.bias.data.uniform_(-3e-3, 3e-3)
-        self.fc6 = nn.Linear(512, 1)
-        self.fc6.weight.data.uniform_(-3e-3, 3e-3)
-        self.fc6.bias.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, x, u):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
-        x = self.avg_pool4(x)
         xu = torch.cat([x.view(x.size(0), -1), u], 1)
 
-        x = F.relu(self.fc5(xu))
-        x = self.fc6(x)
+        x = F.relu(self.fc4(xu))
+        x = self.fc5(x)
         return x
