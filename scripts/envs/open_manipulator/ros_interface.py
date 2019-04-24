@@ -390,16 +390,17 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         """Set target block Gazebo model"""
         # random generated blocks for train
         if block_pose is None:
-            polar_rad, polar_theta, overhead_orientation = (
+            polar_rad, polar_theta, z, overhead_orientation = (
                 np.random.uniform(*self.cfg["POLAR_RADIAN_BOUNDARY"]),
                 np.random.uniform(*self.cfg["POLAR_THETA_BOUNDARY"]),
+                np.random.uniform(*self.cfg["Z_BOUNDARY"]),
                 self.cfg["OVERHEAD_ORIENTATION"],
             )
 
             block_pose = Pose()
             block_pose.position.x = polar_rad * cos(polar_theta)
             block_pose.position.y = polar_rad * sin(polar_theta)
-            block_pose.position.z = np.random.uniform(0.05, 0.28)
+            block_pose.position.z = z
             block_pose.orientation = overhead_orientation
 
         block_reference_frame = "world"
