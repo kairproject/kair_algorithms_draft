@@ -1,5 +1,7 @@
+#! /usr/bin/env python
+
 # -*- coding: utf-8 -*-
-"""Train or test algorithms on Reacher-v1 of Mujoco.
+"""Train or test algorithms on OpenManipulator Reacher-v0 on Gazebo.
 
 - Author: Kh Kim
 - Contact: kh.kim@medipixel.io
@@ -8,16 +10,16 @@
 import argparse
 import importlib
 
-import gym
-
 import algorithms.common.helper_functions as common_utils
+from config.environment.open_manipulator import config as env_cfg
+from envs.open_manipulator.open_manipulator_reacher_env import OpenManipulatorReacherEnv
 
 # configurations
 parser = argparse.ArgumentParser(description="Pytorch RL algorithms")
 parser.add_argument(
     "--seed", type=int, default=777, help="random seed for reproducibility"
 )
-parser.add_argument("--algo", type=str, default="sac", help="choose an algorithm")
+parser.add_argument("--algo", type=str, default="td3", help="choose an algorithm")
 parser.add_argument(
     "--test", dest="test", action="store_true", help="test mode (no training)"
 )
@@ -53,13 +55,13 @@ args = parser.parse_args()
 def main():
     """Main."""
     # env initialization
-    env = gym.make("Reacher-v1")
+    env = OpenManipulatorReacherEnv(env_cfg)
 
     # set a random seed
     common_utils.set_random_seed(args.seed, env)
 
     # agent initialization
-    module_path = "config.agent.reacher-v1." + args.algo
+    module_path = "config.agent.open_manipulator_reacher_v0." + args.algo
     agent = importlib.import_module(module_path)
     agent = agent.get(env, args)
 

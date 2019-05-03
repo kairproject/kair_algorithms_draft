@@ -23,19 +23,19 @@ The [scripts](/scripts) folder contains implementations of a curated list of RL 
 
 - Twin Delayed Deep Deterministic Policy Gradient (TD3)
    - TD3 (Fujimoto et al., 2018) is an extension of DDPG (Lillicrap et al., 2015), a deterministic policy gradient algorithm that uses deep neural networks for function approximation. Inspired by Deep Q-Networks (Mnih et al., 2015), DDPG uses experience replay and target network to improve stability. TD3 further improves DDPG by adding clipped double Q-learning (Van Hasselt, 2010) to mitigate overestimation bias (Thrun & Schwartz, 1993) and delaying policy updates to address variance.
-   - [Example Script on LunarLander](/scripts/examples/lunarlander_continuous_v2/td3.py)
+   - [Example Script on LunarLander](/scripts/config/agent/lunarlander_continuous_v2/td3.py)
    - [ArXiv Preprint](https://arxiv.org/abs/1802.09477)
 
 - (Twin) Soft Actor Critic (SAC)
    - SAC (Haarnoja et al., 2018a) incorporates maximum entropy reinforcment learning, where the agent's goal is to maximize expected reward and entropy concurrently. Combined with TD3, SAC achieves state of the art performance in various continuous control tasks. SAC has been extended to allow automatically tuning of the temperature parameter (Haarnoja et al., 2018b), which determines the importance of entropy against the expected reward.
-   - [Example Script on LunarLander](/scripts/examples/lunarlander_continuous_v2/sac.py)
+   - [Example Script on LunarLander](/scripts/config/agent/lunarlander_continuous_v2/sac.py)
    - [ArXiv Preprint](https://arxiv.org/abs/1801.01290) (Original SAC)
    - [ArXiv Preprint](https://arxiv.org/abs/1812.05905) (SAC with autotuned temperature)
 
  - TD3 from Demonstrations, SAC from Demonstrations (TD3fD, SACfD)
    - DDPGfD (Vecerik et al., 2017) is an imitation learning algorithm that infuses demonstration data into experience replay. DDPGfD also improved DDPG by (1) using prioritized experience replay (Schaul et al., 2015), (2) adding n-step returns, (3) learning multiple times per environment step, and (4) adding L2 regularizers to actor and critic losses. We incorporated these improvements to TD3 and SAC and found that it dramatically improves their performance.
-   - [Example Script of TD3fD on LunarLander](/scripts/examples/lunarlander_continuous_v2/td3fd.py)
-   - [Example Script of SACfD on LunarLander](/scripts/examples/lunarlander_continuous_v2/sacfd.py)
+   - [Example Script of TD3fD on LunarLander](/scripts/config/agent/lunarlander_continuous_v2/td3fd.py)
+   - [Example Script of SACfD on LunarLander](/scripts/config/agent/lunarlander_continuous_v2/sacfd.py)
    - [ArXiv Preprint](https://arxiv.org/abs/1707.08817)
 
 ## Installation

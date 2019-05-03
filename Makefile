@@ -1,9 +1,9 @@
 test:
-	env PYTHONPATH=./scripts pytest --flake8  # --cov=algorithms
+	env PYTHONPATH=./scripts pytest --flake8 --ignore=./scripts/envs # --cov=algorithms
 
 format:
 	isort -y
-	python3.6 -m black -t py27 .
+	python3.6 -m black -t py27 . --fast
 
 dev:
 	pip install -r scripts/requirements-dev.txt
