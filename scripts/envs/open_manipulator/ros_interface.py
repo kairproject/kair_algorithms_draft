@@ -11,7 +11,9 @@ import rospkg  # noqa
 import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
-from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel
+from urdf_parser_py.urdf import URDF  # noqa
+from pykdl_utils.kdl_kinematics import KDLKinematics
+from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel # noqa
 from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from sensor_msgs.msg import JointState
@@ -37,6 +39,7 @@ class OpenManipulatorRosBaseInterface(object):
         self.termination_count = 0
         self.success_count = 0
 
+        self.init_fk_solver()
         self.init_tf_transformer()
         self.init_publish_node()
         self.init_subscribe_node()
@@ -116,6 +119,10 @@ class OpenManipulatorRosBaseInterface(object):
         self.pub_joint3_position.publish(np.random.uniform(0.0, 0.0))
         self.pub_joint4_position.publish(np.random.uniform(0.0, 0.0))
 
+    def init_fk_solver(self):
+        self.robot = URDF.from_parameter_server()
+        self.solve_fk = KDLKinematics(self.robot, "link1", "end_effector_link")
+
     def joint_state_callback(self, msg):
         """Callback function of joint states subscriber.
 
@@ -129,19 +136,16 @@ class OpenManipulatorRosBaseInterface(object):
         self.joint_efforts = joints_states.effort
         # penalize jerky motion in reward for shaped reward setting.
         self.squared_sum_vel = np.linalg.norm(np.array(self.joint_velocities))
-        try:
-            (
-                self._gripper_position,
-                self._gripper_orientation,
-            ) = self.tf_listenser.lookupTransform(
-                "/world", "/end_effector_link", rospy.Time(0)
-            )
-        except (
-            tf.LookupException,
-            tf.ConnectivityException,
-            tf.ExtrapolationException,
-        ):
-            pass
+        _fk_mat = np.array(self.solve_fk.forward(self.joint_positions[:4]))
+        self._gripper_position = _fk_mat[0:3, 3]
+        self._gripper_orientation[3] = (1 + _fk_mat[0, 0] +
+                                        _fk_mat[1, 1] + _fk_mat[2, 2])**0.5
+        self._gripper_orientation[0] = (
+            _fk_mat[2, 1] - _fk_mat[1, 2]) / (4 * self._gripper_orientation[3])
+        self._gripper_orientation[1] = (
+            _fk_mat[0, 2] - _fk_mat[2, 0]) / (4 * self._gripper_orientation[3])
+        self._gripper_orientation[2] = (
+            _fk_mat[1, 0] - _fk_mat[0, 1]) / (4 * self._gripper_orientation[3])                                       
 
     def kinematics_pose_callback(self, msg):
         """Callback function of gripper kinematic pose subscriber.
@@ -258,7 +262,7 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
+        print(lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     def get_observation_space(self):
