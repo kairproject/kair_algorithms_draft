@@ -10,7 +10,7 @@
   <!-- robot URDF parse args -->
   <arg name="om_urdf" value="robot_description"/>
   <arg name="urdf_param" default="/robot_description"/>
-  <param name="$(arg om_urdf)" textfile="$(find kair_algorithms)/urdf/om.urdf"/>
+  <param name="$(arg om_urdf)" textfile="$(find kair_algorithms)/urdf/open_manipulator.urdf"/>
   <arg name="load_robot_description" default="false"/>
 
 
