@@ -121,7 +121,7 @@ class OpenManipulatorRosBaseInterface(object):
 
     def init_fk_solver(self):
         self.robot = URDF.from_parameter_server()
-        self.solve_fk = KDLKinematics(self.robot, "link1", "end_effector_link")
+        self.solve_fk = KDLKinematics(self.robot, "world", "end_effector_link")
 
     def joint_state_callback(self, msg):
         """Callback function of joint states subscriber.
@@ -136,7 +136,7 @@ class OpenManipulatorRosBaseInterface(object):
         self.joint_efforts = joints_states.effort
         # penalize jerky motion in reward for shaped reward setting.
         self.squared_sum_vel = np.linalg.norm(np.array(self.joint_velocities))
-        _fk_mat = np.array(self.solve_fk.forward(self.joint_positions[:4]))
+        _fk_mat = np.array(self.solve_fk.forward(self.joint_positions[2:]))
         self._gripper_position = _fk_mat[0:3, 3]
         self._gripper_orientation[3] = (1 + _fk_mat[0, 0] +
                                         _fk_mat[1, 1] + _fk_mat[2, 2])**0.5
