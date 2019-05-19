@@ -52,53 +52,60 @@ The code is developed using python 2.7, ROS kinetic on Ubuntu 16.04. NVIDIA GPU 
 
 ## How to Train
 ### Docker
+
 To use docker, check the [installation guide](https://github.com/kairproject/kair_algorithms_draft/wiki/Docker)
+
+#### Build Image
+
+```
+docker build -t kairproject/open_manipulator:0.1
+```
+or 
+```
+docker pull kairproject/open_manipulator:0.1
+```
 
 #### OpenManipulator
 
 ```
-docker pull kairproject/open_manipulator:0.1
 docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] openmanipulator [algo]
 ```
 
 #### LunarLanderContinuous-v2
 
 ```
-docker pull kairproject/open_manipulator:0.1
 docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] lunarlander [algo]
 ```
 
 #### Reacher-v1
 
 ```
-docker pull kairproject/open_manipulator:0.1
 docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] reacher [algo]
 ```
 
 ### Local
 Our training [wandb](https://www.wandb.com/) log can be found in https://app.wandb.ai/kairproject/kair_algorithms_draft-scripts
 
-#### OpenManipulator
-
 ```
 cd scripts
 wandb login
+```
+
+#### OpenManipulator
+
+```
 python run_open_manipulator_reacher_v0.py --algo [algo] --off-render --log
 ```
 
 #### LunarLanderContinuous-v2
 
 ```
-cd scripts
-wandb login
 python run_lunarlander_continuous.py --algo [algo] --off-render --log
 ```
 
 #### Reacher-v1
 
 ```
-cd scripts
-wandb login
 python run_reacher_v1.py --algo [algo] --off-render --log
 ```
 
