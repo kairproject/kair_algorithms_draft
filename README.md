@@ -47,6 +47,9 @@ cd scripts
 pip install -r requirements.txt
 ```
 
+## Environment
+The code is developed using python 2.7, ROS kinetic on Ubuntu 16.04. NVIDIA GPU is needed. The code is developed and tested using 1 NVIDIA GeForce GTX 1080 Ti GPU card. Other platforms or GPU cards are not fully tested.
+
 ## How to Train
 ### Docker
 To use docker, check the [installation guide](https://github.com/kairproject/kair_algorithms_draft/wiki/Docker)
