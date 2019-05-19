@@ -47,6 +47,55 @@ cd scripts
 pip install -r requirements.txt
 ```
 
+## How to Train
+### Docker
+To use docker, check the [installation guide](https://github.com/kairproject/kair_algorithms_draft/wiki/Docker)
+
+#### OpenManipulator
+
+```
+docker pull kairproject/open_manipulator:0.1
+docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] openmanipulator [algo]
+```
+
+#### LunarLanderContinuous-v2
+
+```
+docker pull kairproject/open_manipulator:0.1
+docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] lunarlander [algo]
+```
+
+#### Reacher-v1
+
+```
+docker pull kairproject/open_manipulator:0.1
+docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algorithms_draft/scripts/save --runtime=nvidia [image_id] reacher [algo]
+```
+
+### Local
+#### OpenManipulator
+
+```
+cd scripts
+wandb login
+python run_open_manipulator_reacher_v0.py --algo [algo] --off-render --log
+```
+
+#### LunarLanderContinuous-v2
+
+```
+cd scripts
+wandb login
+python run_lunarlander_continuous.py --algo [algo] --off-render --log
+```
+
+#### Reacher-v1
+
+```
+cd scripts
+wandb login
+python run_reacher_v1.py --algo [algo] --off-render --log
+```
 
 ## How to Cite
 
