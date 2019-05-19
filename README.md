@@ -73,6 +73,8 @@ docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algo
 ```
 
 ### Local
+Our training [wandb](https://www.wandb.com/) log can be found in https://app.wandb.ai/kairproject/kair_algorithms_draft-scripts
+
 #### OpenManipulator
 
 ```
