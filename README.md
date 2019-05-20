@@ -47,6 +47,10 @@ cd scripts
 pip install -r requirements.txt
 ```
 
+To train [LunarLanderContinuous-v2](https://gym.openai.com/envs/LunarLanderContinuous-v2/), install [OpenAI Gym](https://github.com/openai/gym) environment.
+
+To train [Reacher-v1](https://gym.openai.com/evaluations/eval_6kY02G5DSpekMBmAeRLVyA/), install [MuJoCo](https://github.com/kairproject/kair_algorithms_draft/wiki/MuJoCo-Setup) environment.
+
 ## Environment
 The code is developed using python 2.7, ROS kinetic on Ubuntu 16.04. NVIDIA GPU is needed. The code is developed and tested using 1 NVIDIA GeForce GTX 1080 Ti GPU card. Other platforms or GPU cards are not fully tested.
 
