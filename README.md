@@ -57,7 +57,7 @@ The code is developed using python 2.7, ROS kinetic on Ubuntu 16.04. NVIDIA GPU 
 ## How to Train
 ### Docker
 
-To use docker, check the [installation guide](https://github.com/kairproject/kair_algorithms_draft/wiki/Docker)
+To use docker, check the [installation guide](https://github.com/kairproject/kair_algorithms_draft/wiki/Docker).
 
 #### Build Image
 
@@ -88,7 +88,7 @@ docker run -v [path_to_kair_algorithms_draft]/save:/root/catkin_ws/src/kair_algo
 ```
 
 ### Local
-Our training [wandb](https://www.wandb.com/) log can be found in https://app.wandb.ai/kairproject/kair_algorithms_draft-scripts
+Our training [wandb](https://www.wandb.com/) log can be found in https://app.wandb.ai/kairproject/kair_algorithms_draft-scripts.
 
 ```
 cd scripts
