@@ -13,7 +13,7 @@ RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y ros-${ROS_DISTRO}-desktop-full ros-${ROS_DISTRO}-rqt-*
 RUN rosdep init && rosdep update
 RUN apt install -y python-rosinstall python-rosinstall-generator python-wstool build-essential
-RUN apt-get install -y ros-${ROS_DISTRO}-ros-controllers ros-${ROS_DISTRO}-gazebo* ros-${ROS_DISTRO}-moveit* ros-${ROS_DISTRO}-industrial-core
+RUN apt-get install -y ros-${ROS_DISTRO}-ros-controllers ros-${ROS_DISTRO}-gazebo* ros-${ROS_DISTRO}-moveit* ros-${ROS_DISTRO}-industrial-core ros-${ROS_DISTRO}-orocos-*
 RUN rm -rf /var/lib/apt/lists/*
 
 # ROS setting
@@ -35,13 +35,14 @@ RUN cd src/ && \
 	git clone -b ${ROS_DISTRO}-devel https://github.com/kairproject/open_manipulator_msgs.git && \
 	git clone -b ${ROS_DISTRO}-devel https://github.com/kairproject/open_manipulator_simulations.git && \
 	git clone -b ${ROS_DISTRO}-devel https://github.com/kairproject/robotis_manipulator.git && \
+	git clone https://github.com/gt-ros-pkg/hrl-kdl.git && \
 	git clone https://github.com/kairproject/kair_algorithms_draft.git
 
 RUN cd src/DynamixelSDK/python && python setup.py install
 
 # install pip
 RUN wget https://bootstrap.pypa.io/get-pip.py
-RUN python2.7 get-pip.py
+RUN python2.7 get-pip.py && rm get-pip.py
 
 # gym requirements
 RUN apt-get update && apt-get install -y python3-opengl zlib1g-dev libjpeg-dev patchelf \
@@ -49,6 +50,7 @@ RUN apt-get update && apt-get install -y python3-opengl zlib1g-dev libjpeg-dev p
 
 # install repository requirements
 RUN apt-get remove -y python-psutil
+
 RUN cd src/kair_algorithms_draft/scripts && python2.7 -m pip install -r requirements.txt
 RUN python2.7 -m pip install gym['Box2d']
 
