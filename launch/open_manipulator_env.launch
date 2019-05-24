@@ -7,10 +7,11 @@
   <arg name="headless" default="false"/>
   <arg name="debug" default="false"/>
 
-  <!-- rviz & tf related args -->
-  <arg name="robot_name"     default="open_manipulator"/>
-  <arg name="open_rviz"      default="false" />
-  <arg name="use_gui"        default="false" />
+  <!-- robot URDF parse args -->
+  <arg name="om_urdf" value="robot_description"/>
+  <arg name="urdf_param" default="/robot_description"/>
+  <param name="$(arg om_urdf)" textfile="$(find kair_algorithms)/urdf/open_manipulator.urdf"/>
+  <arg name="load_robot_description" default="false"/>
 
   <!-- gazebo related -->
   <rosparam file="$(find open_manipulator_gazebo)/config/gazebo_controller.yaml" command="load" />
@@ -23,28 +24,17 @@
     <arg name="headless" value="$(arg headless)"/>
   </include>
 
-  <!-- rviz related -->
-    <!-- Send joint values -->
-    <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
-      <param name="/use_gui" value="$(arg use_gui)"/>
-      <rosparam param="source_list" subst_value="true">["$(arg robot_name)/joint_states"]</rosparam>
-    </node>
-    <!-- Combine joint values to TF-->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
+  <!--KDL chain related args-->
+  <param if="$(arg load_robot_description)" name="$(arg urdf_param)" command="$(find xacro)/xacro --inorder $(find kair_algorithms)/urdf/om.urdf"/>
 
-    <!-- Show in Rviz -->
-    <group if="$(arg open_rviz)">
-      <node name="rviz" pkg="rviz" type="rviz" args="-d $(find open_manipulator_description)/rviz/open_manipulator.rviz"/>
-    </group>
-
-    <!-- Load the URDF into the ROS Parameter Server -->
+  <!-- Load the URDF into the ROS Parameter Server -->
     <param name="robot_description"
     command="$(find xacro)/xacro --inorder '$(find open_manipulator_description)/urdf/open_manipulator.urdf.xacro'"/>
 
-    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
     <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
      args="-urdf -model open_manipulator -z 0.0 -param robot_description"/>
 
-    <!-- ros_control robotis manipulator launch file -->
+  <!-- ros_control robotis manipulator launch file -->
     <include file="$(find open_manipulator_gazebo)/launch/open_manipulator_controller.launch"/>   
 </launch>
