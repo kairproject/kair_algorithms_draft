@@ -13,7 +13,6 @@
   <param name="$(arg om_urdf)" textfile="$(find kair_algorithms)/urdf/open_manipulator.urdf"/>
   <arg name="load_robot_description" default="false"/>
 
-
   <!-- gazebo related -->
   <rosparam file="$(find open_manipulator_gazebo)/config/gazebo_controller.yaml" command="load" />
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -27,10 +26,6 @@
 
   <!--KDL chain related args-->
   <param if="$(arg load_robot_description)" name="$(arg urdf_param)" command="$(find xacro)/xacro --inorder $(find kair_algorithms)/urdf/om.urdf"/>
-
-
-
-
 
   <!-- Load the URDF into the ROS Parameter Server -->
     <param name="robot_description"

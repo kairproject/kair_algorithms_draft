@@ -266,7 +266,7 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print(lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
+        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     def get_observation_space(self):
@@ -305,7 +305,7 @@ class OpenManipulatorRosBaseInterface(object):
         if dist < self.distance_threshold:
             self.success_count += 1
             if self.success_count == self.cfg["SUCCESS_COUNT"]:
-                print("Current episode succeeded")
+                print ("Current episode succeeded")
                 self.success_count = 0
                 return True
             else:
@@ -362,7 +362,7 @@ class OpenManipulatorRosBaseInterface(object):
             rospy.logwarn("OUT OF BOUNDARY : joint_1_limit exceeds")
 
         if self.termination_count == term_count:
-            print("Current episode terminated")
+            print ("Current episode terminated")
             self.termination_count = 0
             return True
         else:
@@ -386,7 +386,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         if block_pose is not None:
             assert self.train_mode is True
 
-        #        self.delete_target_block()
+        # self.delete_target_block()
         self.init_robot_pose()
         time.sleep(0.5)
 
@@ -416,19 +416,19 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
 
         # TODO: Add block generation condition when testing gazebo simulation.
 
-    #        block_reference_frame = "world"
-    #        model_path = rospkg.RosPack().get_path("kair_algorithms") + "/urdf/"
-    #
-    #        with open(model_path + "block/model.urdf", "r") as block_file:
-    #            block_xml = block_file.read().replace("\n", "")
-    #
-    #        rospy.wait_for_service("/gazebo/spawn_urdf_model")
-    #
-    #        try:
-    #            spawn_urdf = rospy.ServiceProxy("/gazebo/spawn_urdf_model", SpawnModel)
-    #            spawn_urdf("block", block_xml, "/", block_pose, block_reference_frame)
-    #        except rospy.ServiceException as e:
-    #            rospy.logerr("Spawn URDF service call failed: {0}".format(e))
+        # block_reference_frame = "world"
+        # model_path = rospkg.RosPack().get_path("kair_algorithms") + "/urdf/"
+
+        # with open(model_path + "block/model.urdf", "r") as block_file:
+        #     block_xml = block_file.read().replace("\n", "")
+
+        # rospy.wait_for_service("/gazebo/spawn_urdf_model")
+
+        # try:
+        #     spawn_urdf = rospy.ServiceProxy("/gazebo/spawn_urdf_model", SpawnModel)
+        #     spawn_urdf("block", block_xml, "/", block_pose, block_reference_frame)
+        # except rospy.ServiceException as e:
+        #     rospy.logerr("Spawn URDF service call failed: {0}".format(e))
 
     def delete_target_block(self):
         """This will be called on ROS Exit, deleting Gazebo models.
@@ -449,22 +449,22 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         Returns:
             L2 norm of end effector pose and object pose.
         """
-        #        rospy.wait_for_service("/gazebo/get_model_state")
-        #
-        #        try:
-        #            object_state_srv = rospy.ServiceProxy(
-        #                "/gazebo/get_model_state", GetModelState
-        #            )
-        #            object_state = object_state_srv("block", "world")
-        #            object_pose = [
-        #                object_state.pose.position.x,
-        #                object_state.pose.position.y,
-        #                object_state.pose.position.z,
-        #            ]
-        #            self._obj_pose = np.array(object_pose)
-        #        except rospy.ServiceException as e:
-        #            rospy.logerr("Spawn URDF service call failed: {0}".format(e))
-        #
+        # rospy.wait_for_service("/gazebo/get_model_state")
+
+        # try:
+        #     object_state_srv = rospy.ServiceProxy(
+        #         "/gazebo/get_model_state", GetModelState
+        #     )
+        #     object_state = object_state_srv("block", "world")
+        #     object_pose = [
+        #         object_state.pose.position.x,
+        #         object_state.pose.position.y,
+        #         object_state.pose.position.z,
+        #     ]
+        #     self._obj_pose = np.array(object_pose)
+        # except rospy.ServiceException as e:
+        #     rospy.logerr("Spawn URDF service call failed: {0}".format(e))
+
         # FK state of robot
         end_effector_pose = np.array(self._gripper_position)
         return np.linalg.norm(end_effector_pose - self.block_pose)
