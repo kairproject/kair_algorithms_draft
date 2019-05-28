@@ -110,4 +110,3 @@ def get(env, args):
 
     # create an agent
     return Agent(env, args, hyper_params, models, optims, target_entropy)
-
