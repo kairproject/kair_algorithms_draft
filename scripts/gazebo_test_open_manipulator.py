@@ -6,6 +6,7 @@ import numpy as np
 from config.environment.open_manipulator import config as cfg
 
 import rospy
+from config.envs.open_manipulator import config as cfg
 from envs.open_manipulator import OpenManipulatorReacherEnv
 from geometry_msgs.msg import Pose, Quaternion
 from open_manipulator_msgs.msg import JointPosition, KinematicsPose
