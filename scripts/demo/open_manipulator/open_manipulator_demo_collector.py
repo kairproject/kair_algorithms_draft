@@ -1,13 +1,16 @@
 #!/usr/bin/env python
+"""Collect demos using jacobian based control.
+
+- Author: DH Kim
+- Contact: kdh0429@snu.ac.kr
+"""
 import json
 import random
 import threading
 import time
 from collections import OrderedDict
 from math import pi, pow
-
 import numpy as np
-
 
 # ROS Imports
 import rospy
@@ -16,14 +19,10 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64, Float64MultiArray
 from urdf_parser_py.urdf import URDF
 
-####################
-# GLOBAL VARIABLES #
-####################
-DAMPING = 0.01  # 0.00
-JOINT_VEL_LIMIT = 4  # 2rad/s
-
 
 class DemoCollector(object):
+    """Demo collector class which controls openmanipulator based on jacobain method."""
+
     def __init__(self):
 
         rospy.loginfo("Start Demo Collector")
@@ -33,8 +32,8 @@ class DemoCollector(object):
 
         # Shared variables
         self.mutex = threading.Lock()
-        self.damping = rospy.get_param("~damping", DAMPING)
-        self.joint_vel_limit = rospy.get_param("~joint_vel_limit", JOINT_VEL_LIMIT)
+        self.damping = rospy.get_param("~damping", 0.01)
+        self.joint_vel_limit = rospy.get_param("~joint_vel_limit", 4)
         self.q = np.zeros(4)  # Joint angles
         self.q_desired = np.zeros(4)
         self.qdot = np.zeros(4)  # Joint velocities
@@ -117,8 +116,10 @@ class DemoCollector(object):
             if self.num_cur_demo > self.num_tar_demo:
                 print("Demo Collection Finished!")
                 self.is_finished = True
+        quit()
 
     def joint_states_cb(self, joint_states):
+        """ Save joint states published in ROS to class member."""
         self.is_joint_states_cb = True
         i = 0
         while i < 4:
@@ -128,9 +129,11 @@ class DemoCollector(object):
             i += 1
 
     def start_log(self):
+        """ Start logging in .txt format."""
         self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
+        """ Randomly set target within joint limit and workspace limit."""
         appropriate_target = False
         while appropriate_target is False:
             q_limit_L = [-pi * 0.5, -pi * 0.5, -pi * 0.3, -pi * 0.57]

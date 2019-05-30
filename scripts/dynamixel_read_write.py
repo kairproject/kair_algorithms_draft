@@ -1,10 +1,15 @@
 #!/usr/bin/env python
+"""Read dynamixel state and publish through ROS. Also, control dynamixel position with subscribed joint command
+
+- Author: DH Kim
+- Contact: kdh0429@snu.ac.kr
+"""
 
 import numpy as np
 
 # ROS Imports
 import rospy
-from config import config as cfg
+from config.dynamixel import config as cfg
 from dynamixel_sdk import (
     DXL_HIBYTE,
     DXL_HIWORD,
@@ -21,6 +26,7 @@ from utils import deg2rad, rad2deg, rpm2rad
 
 
 class DynamixelPositionControl(object):
+    """Dynamixel read & write class."""
     def __init__(self, cfg):
         # Dynamixel Setting
         rospy.loginfo("Dynamixel Position Controller Created")
@@ -215,6 +221,7 @@ class DynamixelPositionControl(object):
             )
 
     def joint_command_cb(self, joint_desired):
+        """ Transform subscribed joint command to dynamixel byte information."""
         i = 0
         while i < 4:
             self.q_desired[i] = joint_desired.data[i]
@@ -236,6 +243,7 @@ class DynamixelPositionControl(object):
             i += 1
 
     def read_dxl(self):
+        """ Read dynamixel position, velocity, current value and publish through ROS."""
         self.groupBulkReadPosition.txRxPacket()
 
         self.dxl_present_position[0] = self.groupBulkReadPosition.getData(
@@ -361,6 +369,7 @@ class DynamixelPositionControl(object):
         self.joint_states_pub.publish(self.joint_states)
 
     def write_dxl(self):
+        """ Write joint command to dynamixel."""
         self.groupSyncWrite.addParam(self.cfg["DXL1_ID"], self.dxl_goal_position[0])
         self.groupSyncWrite.addParam(self.cfg["DXL2_ID"], self.dxl_goal_position[1])
         self.groupSyncWrite.addParam(self.cfg["DXL3_ID"], self.dxl_goal_position[2])
@@ -370,6 +379,7 @@ class DynamixelPositionControl(object):
         self.groupSyncWrite.clearParam()
 
     def error_check(self, dxl_comm_result, dxl_error):
+        """ Check dynamixel error."""
         if dxl_comm_result != self.cfg["COMM_SUCCESS"]:
             print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
@@ -377,7 +387,7 @@ class DynamixelPositionControl(object):
 
 
 def main():
-    rospy.init_node("DXL_pos_control")
+    rospy.init_node("dynamixel_read_write")
 
     try:
         DynamixelPositionControl(cfg)
