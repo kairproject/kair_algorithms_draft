@@ -97,8 +97,11 @@ wandb login
 
 #### OpenManipulator
 
+Follow the ROS installation commands in [Dockerfile](https://github.com/kairproject/kair_algorithms_draft/blob/master/Dockerfile) to train.
+
 ```
-python run_open_manipulator_reacher_v0.py --algo [algo] --off-render --log
+roslaunch kair_algorithms open_manipulator_env.launch gui:=false &
+rosrun run_open_manipulator_reacher_v0.py --algo [algo] --off-render --log
 ```
 
 #### LunarLanderContinuous-v2
@@ -111,6 +114,27 @@ python run_lunarlander_continuous.py --algo [algo] --off-render --log
 
 ```
 python run_reacher_v1.py --algo [algo] --off-render --log
+```
+
+## How to Test
+
+#### OpenManipulator
+
+```
+roslaunch kair_algorithms open_manipulator_env.launch gui:=false &
+rosrun python run_open_manipulator_reacher_v0.py --algo [algo] --off-render --test --load-from [trained_weight_path]
+```
+
+#### LunarLanderContinuous-v2
+
+```
+python run_lunarlander_continuous.py --algo [algo] --off-render --test --load-from [trained_weight_path]
+```
+
+#### Reacher-v1
+
+```
+python run_reacher_v1.py --algo [algo] --off-render --test --load-from [trained_weight_path]
 ```
 
 ## How to Cite
