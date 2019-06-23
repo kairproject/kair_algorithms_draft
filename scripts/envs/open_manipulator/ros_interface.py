@@ -219,6 +219,9 @@ class OpenManipulatorRosBaseInterface(object):
         robot_joint_velocities = np.array(self.joint_velocities)
         robot_joint_efforts = np.array(self.joint_efforts)
 
+        # dist to target
+        dist = np.array([self.get_dist()])
+
         obs = np.concatenate(
             (
                 gripper_pos,
@@ -226,6 +229,7 @@ class OpenManipulatorRosBaseInterface(object):
                 robot_joint_angles,
                 robot_joint_velocities,
                 robot_joint_efforts,
+                dist
             )
         )
         return obs
