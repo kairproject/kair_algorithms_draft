@@ -230,6 +230,8 @@ class OpenManipulatorRosBaseInterface(object):
                 robot_joint_velocities,
                 robot_joint_efforts,
                 dist
+                # TODO +1 to config/environment/open_manipulator/observation dim?
+                # TODO Add distance information to get_observation_space
             )
         )
         return obs
