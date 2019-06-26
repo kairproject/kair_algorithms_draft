@@ -306,7 +306,6 @@ class OpenManipulatorRosBaseInterface(object):
             self.success_count += 1
             if self.success_count == self.cfg["SUCCESS_COUNT"]:
                 print ("Current episode succeeded")
-                self.success_count = 0
                 return True
             else:
                 return False
@@ -388,6 +387,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
 
         # self.delete_target_block()
         self.init_robot_pose()
+        self.success_count = 0
         time.sleep(0.5)
 
         self.set_target_block(block_pose)

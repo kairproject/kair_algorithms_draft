@@ -76,15 +76,16 @@ class OpenManipulatorReacherEnv(gym.Env):
         if self.env_mode == "sim":
             self.reward = self.compute_reward()
             # TODO: Add termination condition
-            #            if self.ros_interface.check_for_termination():
-            #                self.done = True
+            # if self.ros_interface.check_for_termination():
+            #     self.done = True
             if self.ros_interface.check_for_success():
                 self.done = True
+                self.episode_steps = 0
 
         obs = self.ros_interface.get_observation()
 
         if self.episode_steps == self._max_episode_steps:
-            self.done = True
+            self.done = False
             self.episode_steps = 0
 
         return obs, self.reward_rescale_ratio * self.reward, self.done, None
