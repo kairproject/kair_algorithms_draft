@@ -33,7 +33,7 @@ config = {
     },
     # Global variables
     "ACTION_DIM": 5,  # Cartesian
-    "OBSERVATION_DIM": (25,),
+    "OBSERVATION_DIM": (26,),
     # terminal condition
     "INNER_RADIAN": 0.134,
     "OUTER_RADIAN": 0.3,
