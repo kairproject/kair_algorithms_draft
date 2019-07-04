@@ -11,8 +11,6 @@ import time
 from collections import OrderedDict
 from math import pi, pow
 import numpy as np
-
-# ROS Imports
 import rospy
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
@@ -26,11 +24,30 @@ class DemoCollector(object):
     def __init__(self):
 
         rospy.loginfo("Start Demo Collector")
-        self.use_platform = rospy.get_param("~use_platform")
+        # TODO: Receive True or False with parser to check real or simulation.
+        self.use_platform = rospy.get_param("~use_platform", False)
+        self.print_start_message()
+
         self.robot_urdf = URDF.from_parameter_server()
         self.robot = KDLKinematics(self.robot_urdf, "world", "end_effector_link")
 
-        # Shared variables
+        self.init_shared_variables()
+        self.init_observation()
+        self.is_init_states()
+
+        self.init_subscriber()
+        self.init_publisher()
+
+        self.run()
+
+    def print_start_message(self):
+        if self.use_platform is False:
+            rospy.loginfo("Start Gazebo Demo Collector")
+        else:
+            rospy.loginfo("Start Real Demo Collector")
+
+    def init_shared_variables(self):
+        """Initialize shared variables."""
         self.mutex = threading.Lock()
         self.damping = rospy.get_param("~damping", 0.01)
         self.joint_vel_limit = rospy.get_param("~joint_vel_limit", 4)
@@ -42,16 +59,6 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
-        # Observation
-        self._gripper_pos = np.zeros(3)
-        self._gripper_orientation = np.zeros(4)
-
-        self.init = False
-        self.is_joint_states_cb = False
-        self.is_set_new_target = False
-        self.is_init_pos = False
-        self.is_finished = False
-
         self.num_tar_demo = 10
         self.num_cur_demo = 0
 
@@ -59,7 +66,21 @@ class DemoCollector(object):
             rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         )
 
-        # Subscriber
+    def init_observation(self):
+        """Initialize observation"""
+        self._gripper_pos = np.zeros(3)
+        self._gripper_orientation = np.zeros(4)
+
+    def is_init_states(self):
+        """Initialize variable whick checks if task is done."""
+        self.init = False
+        self.is_joint_states_cb = False
+        self.is_set_new_target = False
+        self.is_init_pos = False
+        self.is_finished = False
+
+    def init_subscriber(self):
+        """Initialize joint states subscriber."""
         if self.use_platform is False:
             self.joint_states_sub = rospy.Subscriber(
                 "/open_manipulator/joint_states", JointState, self.joint_states_cb
@@ -69,7 +90,8 @@ class DemoCollector(object):
                 "/open_manipulator/joint_states_real", JointState, self.joint_states_cb
             )
 
-        # Command publisher
+    def init_publisher(self):
+        """Initialize joint command publisher."""
         self.j1_pos_command_pub = rospy.Publisher(
             "/open_manipulator/joint1_position/command", Float64, queue_size=3
         )
@@ -86,19 +108,29 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def run(self):
+        """Run demo collection.
+
+        1) If init is false, do initial setting.
+        2) If target is not set, and robot is initial pose, set new target.
+        3) If target is set, move to target.
+        4) If robot pose is not initial pose, move to initial pose.
+        5) If target is set and robot pose is not initial pose, take ros sleep.
+        6) If number of target demo is bigger than number of current demo, finish demo 
+        collection.
+        """
         self.r = rospy.Rate(100)
         while not self.is_finished:
             if self.is_joint_states_cb is True:
                 if self.init is False:
-                    rospy.loginfo("Moving to Initial Position")
+                    rospy.loginfo("Moving to Initial Position")  # run 1
                     self.q_init = list(self.q)
                     self.control_start_time = (
                         rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
                     )
                     self.init = True
-
                 if self.is_set_new_target is False and self.is_init_pos:
-                    self.start_log()
+                    self.start_log()  # run 2
                     self.set_target()
                     self.T_init = np.array(self.robot.forward(self.q))
                     self.control_start_time = (
@@ -107,14 +139,13 @@ class DemoCollector(object):
                     self.is_set_new_target = True
                     self.num_cur_demo = self.num_cur_demo + 1
                 if self.is_set_new_target is True:
-                    self.move_to_target()
+                    self.move_to_target()  # run 3
                 if self.is_init_pos is False:
-                    self.move_to_init()
-
+                    self.move_to_init()  # run 4
             if self.is_set_new_target is True or self.is_init_pos is False:
-                self.r.sleep()
+                self.r.sleep()  # run 5
             if self.num_cur_demo > self.num_tar_demo:
-                print("Demo Collection Finished!")
+                print("Demo Collection Finished!")  # run 6
                 self.is_finished = True
         quit()
 
@@ -166,6 +197,7 @@ class DemoCollector(object):
         return
 
     def move_to_target(self):
+        """Move robot to target."""
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         with self.mutex:
             q_now = self.q
@@ -251,9 +283,8 @@ class DemoCollector(object):
             self.f.close()
             print("Target arrived!")
 
-        return
-
     def move_to_init(self):
+        """Move robot to initial pose."""
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         for i in range(4):
             self.q_desired[i] = self.cubic(
@@ -320,7 +351,6 @@ class DemoCollector(object):
             )
 
         return x_t
-
 
 def main():
     rospy.init_node("demo_collector")
