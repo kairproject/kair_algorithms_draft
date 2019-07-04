@@ -171,9 +171,11 @@ class DemoCollector(object):
             q_limit_H = [pi * 0.5, pi * 0.5, pi * 0.44, pi * 0.65]
             rand_scale = np.zeros(4)
             q_rand = np.zeros(4)
+            print("rand scale: ", rand_scale)
             for i in range(4):
                 rand_scale[i] = random.random()
                 q_rand[i] = rand_scale[i] * (q_limit_H[i] - q_limit_L[i]) + q_limit_L[i]
+            print("q rand: ", q_rand)
 
             self.T_target = np.array(self.robot.forward(q_rand))
             target = np.empty_like(self.T_target[0:3, 3])
