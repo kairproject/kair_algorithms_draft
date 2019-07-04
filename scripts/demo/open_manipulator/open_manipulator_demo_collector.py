@@ -40,6 +40,8 @@ class DemoCollector(object):
 
         self.run()
 
+        self.is_done = False
+
     def print_start_message(self):
         if self.use_platform is False:
             rospy.loginfo("Start Gazebo Demo Collector")
@@ -108,6 +110,22 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def joint_states_cb(self, joint_states):
+        """ Save joint states published in ROS to class member.
+        
+        q: joint position array
+           [joint1_position, joint2_position, joint3_position, joint4_position]
+        q_dot: joint velocity array
+               [joint1_velocity, joint2_velocity, joint3_velocity, joint4_velocity]
+        effot: joint torque array
+               [joint1_effort, joint2_effort, joint3_effort, joint4_effot]
+        """
+        self.is_joint_states_cb = True
+        for i in range(0,4):
+            self.q[i] = joint_states.position[i + 2]
+            self.qdot[i] = joint_states.velocity[i + 2]
+            self.effort[i] = joint_states.effort[i + 2]  
+
     def run(self):
         """Run demo collection.
 
@@ -122,15 +140,17 @@ class DemoCollector(object):
         self.r = rospy.Rate(100)
         while not self.is_finished:
             if self.is_joint_states_cb is True:
+                # run 1
                 if self.init is False:
-                    rospy.loginfo("Moving to Initial Position")  # run 1
+                    rospy.loginfo("Moving to Initial Position")
                     self.q_init = list(self.q)
                     self.control_start_time = (
                         rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
                     )
                     self.init = True
+                # run 2
                 if self.is_set_new_target is False and self.is_init_pos:
-                    self.start_log()  # run 2
+                    self.start_log()
                     self.set_target()
                     self.T_init = np.array(self.robot.forward(self.q))
                     self.control_start_time = (
@@ -138,68 +158,95 @@ class DemoCollector(object):
                     )
                     self.is_set_new_target = True
                     self.num_cur_demo = self.num_cur_demo + 1
+                # run 3
                 if self.is_set_new_target is True:
-                    self.move_to_target()  # run 3
+                    self.move_to_target()
+                # run 4
                 if self.is_init_pos is False:
-                    self.move_to_init()  # run 4
+                    self.move_to_init()
+            # run 5
             if self.is_set_new_target is True or self.is_init_pos is False:
-                self.r.sleep()  # run 5
+                self.r.sleep()
+            # run 6
             if self.num_cur_demo > self.num_tar_demo:
-                print("Demo Collection Finished!")  # run 6
+                print("Demo Collection Finished!")
                 self.is_finished = True
-        quit()
 
-    def joint_states_cb(self, joint_states):
-        """ Save joint states published in ROS to class member."""
-        self.is_joint_states_cb = True
-        i = 0
-        while i < 4:
-            self.q[i] = joint_states.position[i + 2]
-            self.qdot[i] = joint_states.velocity[i + 2]
-            self.effort[i] = joint_states.effort[i + 2]
-            i += 1
+        quit()    
 
     def start_log(self):
         """ Start logging in .txt format."""
         self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
-        """ Randomly set target within joint limit and workspace limit."""
+        """ Randomly set target within joint limit and workspace limit.
+        
+        q_limit_L: Low limit of joint.
+        q_limit_H: High limit of joint.
+        q_rand: Randomly set joint angle.
+        T target: Transformation matrix of randomly set target.
+                  Get matrix by robot forward kinematics of q_rand.
+        target: Position of randomly set target. 
+                Get target array from transformation matrix.
+        min_op_distance: Minimum workspace distance limit.
+        max_op_distance: Maximum workspace distance limit.
+
+        1) Initialize and set new target if target is not appropriate.
+        2) Get random joint angle within joint limits.
+        3) Get transformation matrix and position array by doing robot forward kinmetics.
+        4) Calculate target position within workspace distance limits.
+        5) Check if it is appropriate target. Finish loop if it is true, othercase
+           continue loop.
+        """
+        # run 1
         appropriate_target = False
         while appropriate_target is False:
+            # run 2
             q_limit_L = [-pi * 0.5, -pi * 0.5, -pi * 0.3, -pi * 0.57]
             q_limit_H = [pi * 0.5, pi * 0.5, pi * 0.44, pi * 0.65]
             rand_scale = np.zeros(4)
             q_rand = np.zeros(4)
-            print("rand scale: ", rand_scale)
             for i in range(4):
                 rand_scale[i] = random.random()
                 q_rand[i] = rand_scale[i] * (q_limit_H[i] - q_limit_L[i]) + q_limit_L[i]
-            print("q rand: ", q_rand)
 
+            # run 3
             self.T_target = np.array(self.robot.forward(q_rand))
             target = np.empty_like(self.T_target[0:3, 3])
             target[:] = self.T_target[0:3, 3]
 
+            # run 4
             min_op_distance = 0.15
             max_op_distance = 0.4
-
             if np.linalg.norm(np.abs(target)) > max_op_distance:
                 target = target * max_op_distance / np.linalg.norm(np.abs(target))
-
             if np.linalg.norm(np.abs(target)) < min_op_distance:
                 target = target * min_op_distance / np.linalg.norm(np.abs(target))
 
+            # run 5
             if target[0] > 0.0:
                 if target[2] > 0.04:
                     self.T_target[0:3, 3] = target
                     appropriate_target = True
         print("Episode ", self.num_cur_demo)
         print("Target :", self.T_target[0:3, 3])
-        return
 
     def move_to_target(self):
-        """Move robot to target."""
+        """Move robot to target.
+        
+        q_now: Current joint angles.
+        T_cur: Current transformation matrix.
+        
+        1) Get current time
+        2) Get gripper position and orientation by calculate forward kinematics
+           of current joint angles.
+        3) Path planning by cubic function. Set goal matrix.
+        4) Get jacobian .
+        5) Get q_new by inverse term.
+        6) Scaling joint velocities.
+        7) Set joint states.
+        8) Save file.
+        """
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         with self.mutex:
             q_now = self.q
