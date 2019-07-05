@@ -168,7 +168,25 @@ class DemoCollector(object):
 #        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
-        """ Randomly set target within joint limit and workspace limit."""
+        """ Randomly set target within joint limit and workspace limit.
+
+        q_limit_L: Low limit of joint.
+        q_limit_H: High limit of joint.
+        q_rand: Randomly set joint angle.
+        T target: Transformation matrix of randomly set target.
+                  Get matrix by robot forward kinematics of q_rand.
+        target: Position of randomly set target.
+                Get target array from transformation matrix.
+        min_op_distance: Minimum workspace distance limit.
+        max_op_distance: Maximum workspace distance limit.
+
+        1) Initialize and set new target if target is not appropriate.
+        2) Get random joint angle within joint limits.
+        3) Get transformation matrix and position array by robot forward kinmetics.
+        4) Calculate target position within workspace distance limits.
+        5) Check if it is appropriate target. Finish loop if it is true, othercase
+           continue loop.
+        """
         appropriate_target = False
         while appropriate_target is False:
             q_limit_L = [-pi * 0.5, -pi * 0.5, -pi * 0.3, -pi * 0.57]
@@ -201,7 +219,21 @@ class DemoCollector(object):
         return
 
     def move_to_target(self):
-        """Move robot to target."""
+        """Move robot to target.
+
+        q_now: Current joint angles.
+        T_cur: Current transformation matrix.
+
+        1) Get current time
+        2) Get gripper position and orientation by calculate forward kinematics
+           of current joint angles.
+        3) Path planning by cubic function. Set goal matrix.
+        4) Get jacobian .
+        5) Get q_new by inverse term.
+        6) Scaling joint velocities.
+        7) Set joint states.
+        8) Save file.
+        """
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         with self.mutex:
             q_now = self.q
