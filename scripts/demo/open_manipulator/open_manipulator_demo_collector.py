@@ -112,7 +112,7 @@ class DemoCollector(object):
 
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member.
-        
+
         q: joint position array
            [joint1_position, joint2_position, joint3_position, joint4_position]
         q_dot: joint velocity array
@@ -121,10 +121,10 @@ class DemoCollector(object):
                [joint1_effort, joint2_effort, joint3_effort, joint4_effot]
         """
         self.is_joint_states_cb = True
-        for i in range(0,4):
+        for i in range(0, 4):
             self.q[i] = joint_states.position[i + 2]
             self.qdot[i] = joint_states.velocity[i + 2]
-            self.effort[i] = joint_states.effort[i + 2]  
+            self.effort[i] = joint_states.effort[i + 2]
 
     def run(self):
         """Run demo collection.
@@ -134,7 +134,7 @@ class DemoCollector(object):
         3) If target is set, move to target.
         4) If robot pose is not initial pose, move to initial pose.
         5) If target is set and robot pose is not initial pose, take ros sleep.
-        6) If number of target demo is bigger than number of current demo, finish demo 
+        6) If number of target demo is bigger than number of current demo, finish demo
         collection.
         """
         self.r = rospy.Rate(100)
@@ -172,7 +172,7 @@ class DemoCollector(object):
                 print("Demo Collection Finished!")
                 self.is_finished = True
 
-        quit()    
+        quit()
 
     def start_log(self):
         """ Start logging in .txt format."""
@@ -180,20 +180,20 @@ class DemoCollector(object):
 
     def set_target(self):
         """ Randomly set target within joint limit and workspace limit.
-        
+
         q_limit_L: Low limit of joint.
         q_limit_H: High limit of joint.
         q_rand: Randomly set joint angle.
         T target: Transformation matrix of randomly set target.
                   Get matrix by robot forward kinematics of q_rand.
-        target: Position of randomly set target. 
+        target: Position of randomly set target.
                 Get target array from transformation matrix.
         min_op_distance: Minimum workspace distance limit.
         max_op_distance: Maximum workspace distance limit.
 
         1) Initialize and set new target if target is not appropriate.
         2) Get random joint angle within joint limits.
-        3) Get transformation matrix and position array by doing robot forward kinmetics.
+        3) Get transformation matrix and position array by robot forward kinmetics.
         4) Calculate target position within workspace distance limits.
         5) Check if it is appropriate target. Finish loop if it is true, othercase
            continue loop.
@@ -233,10 +233,10 @@ class DemoCollector(object):
 
     def move_to_target(self):
         """Move robot to target.
-        
+
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
-        
+
         1) Get current time
         2) Get gripper position and orientation by calculate forward kinematics
            of current joint angles.
@@ -384,22 +384,18 @@ class DemoCollector(object):
             total_x = x_f - x_0
 
             x_t = (
-                x_0
-                + x_dot_0 * elapsed_time
-                + (
-                    3 * total_x / total_time2
-                    - 2 * x_dot_0 / total_time
-                    - x_dot_f / total_time
-                )
-                * elapsed_time
-                * elapsed_time
-                + (-2 * total_x / total_time3 + (x_dot_0 + x_dot_f) / total_time2)
-                * elapsed_time
-                * elapsed_time
-                * elapsed_time
+                x_0 + x_dot_0 * elapsed_time +
+                (
+                    3 * total_x / total_time2 -
+                    2 * x_dot_0 / total_time -
+                    x_dot_f / total_time
+                ) * elapsed_time * elapsed_time +
+                (-2 * total_x / total_time3 + (x_dot_0 + x_dot_f) / total_time2
+                ) * elapsed_time * elapsed_time * elapsed_time
             )
 
         return x_t
+
 
 def main():
     rospy.init_node("demo_collector")
