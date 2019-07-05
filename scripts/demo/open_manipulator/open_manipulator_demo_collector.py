@@ -218,6 +218,42 @@ class DemoCollector(object):
         print("Target :", self.T_target[0:3, 3])
         return
 
+    def get_joint_velocities(self, q_now, e):
+        Jb = np.array(self.robot.jacobian(q_now))
+        Jv = Jb[0:3, :]
+
+        invterm = np.linalg.inv(np.dot(Jv, Jv.T) + pow(self.damping, 2) * np.eye(3))
+        kp = 2.0
+        qdot_new = np.dot(np.dot(Jv.T, invterm), kp * e)
+        return qdot_new
+
+    def get_desired_joint_position(self, qdot_new):
+        minus_v = abs(np.amin(qdot_new))
+        plus_v = abs(np.amax(qdot_new))
+        if minus_v > plus_v:
+            scale = minus_v
+        else:
+            scale = plus_v
+        if scale > self.joint_vel_limit:
+            qdot_new = 2.0 * (qdot_new / scale) * self.joint_vel_limit
+        self.qdot = qdot_new
+        dt = 0.01
+        self.q_desired = self.q_desired + qdot_new * dt
+        self.q_desired = self.joint_limit_check(self.q_desired)
+        return self.q_desired
+
+    def planning_goal_position(self, t_now):
+        for i in range(3):
+            self.T_goal[i, 3] = self.cubic(
+                t_now,
+                self.control_start_time,
+                self.control_start_time + 2.0,
+                self.T_init[i, 3],
+                self.T_target[i, 3],
+                0.0,
+                0.0,
+            )
+
     def move_to_target(self):
         """Move robot to target.
 
@@ -239,60 +275,15 @@ class DemoCollector(object):
             q_now = self.q
 
         self.T_cur = np.array(self.robot.forward(q_now))
-        self._gripper_pos = self.T_cur[0:3, 3]
-        self._gripper_orientation[3] = (
-            1 + self.T_cur[0, 0] + self.T_cur[1, 1] + self.T_cur[2, 2]
-        ) ** 0.5
-        self._gripper_orientation[0] = (self.T_cur[2, 1] - self.T_cur[1, 2]) / (
-            4 * self._gripper_orientation[3]
-        )
-        self._gripper_orientation[1] = (self.T_cur[0, 2] - self.T_cur[2, 0]) / (
-            4 * self._gripper_orientation[3]
-        )
-        self._gripper_orientation[2] = (self.T_cur[1, 0] - self.T_cur[0, 1]) / (
-            4 * self._gripper_orientation[3]
-        )
 
-        for i in range(3):
-            self.T_goal[i, 3] = self.cubic(
-                t_now,
-                self.control_start_time,
-                self.control_start_time + 2.0,
-                self.T_init[i, 3],
-                self.T_target[i, 3],
-                0.0,
-                0.0,
-            )
-
+        self.set_gripper_states(self.T_cur)
+        self.planning_goal_position(t_now)
         e = self.T_goal[0:3, 3] - self.T_cur[0:3, 3]
+        
+        qdot_new = self.get_joint_velocities(q_now, e)
+        self.q_desired = self.get_desired_joint_position(qdot_new)
 
-        Jb = np.array(self.robot.jacobian(q_now))
-        Jv = Jb[0:3, :]
-
-        invterm = np.linalg.inv(np.dot(Jv, Jv.T) + pow(self.damping, 2) * np.eye(3))
-        kp = 2.0
-        qdot_new = np.dot(np.dot(Jv.T, invterm), kp * e)
-
-        # Scaling joint velocity
-        minus_v = abs(np.amin(qdot_new))
-        plus_v = abs(np.amax(qdot_new))
-        if minus_v > plus_v:
-            scale = minus_v
-        else:
-            scale = plus_v
-        if scale > self.joint_vel_limit:
-            qdot_new = 2.0 * (qdot_new / scale) * self.joint_vel_limit
-        self.qdot = qdot_new
-
-        dt = 0.01
-        self.q_desired = self.q_desired + qdot_new * dt
-        self.q_desired = self.joint_limit_check(self.q_desired)
-
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
+        self.set_joint_position(self.q_desired)
 
         obs = np.concatenate(
             (
@@ -318,6 +309,13 @@ class DemoCollector(object):
             )
             print("Target arrived!")
 
+    def set_joint_position(self, q_desired):
+        self.j1_pos_command_pub.publish(q_desired[0])
+        self.j2_pos_command_pub.publish(q_desired[1])
+        self.j3_pos_command_pub.publish(q_desired[2])
+        self.j4_pos_command_pub.publish(q_desired[3])
+        self.joint_pos_command_to_dxl_pub.publish(data=q_desired)        
+
     def move_to_init(self):
         """Move robot to initial pose."""
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
@@ -333,12 +331,8 @@ class DemoCollector(object):
             )
         self.q_desired = self.joint_limit_check(self.q_desired)
 
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
-
+        self.set_joint_position(self.q_desired)
+        
         if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
             time.sleep(2.0)
             self.is_init_pos = True
