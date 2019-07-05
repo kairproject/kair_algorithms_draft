@@ -8,7 +8,7 @@ import json
 import random
 import threading
 import time
-from collections import defaultdict
+from collections import OrderedDict
 from math import pi, pow
 import numpy as np
 import rospy
@@ -61,7 +61,7 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
-        self.num_tar_demo = 3
+        self.num_tar_demo = 10
         self.num_cur_demo = 0
 
         self.control_start_time = (
@@ -138,7 +138,6 @@ class DemoCollector(object):
         collection.
         """
         self.r = rospy.Rate(100)
-        self.start_log()
         while not self.is_finished:
             if self.is_joint_states_cb is True:
                 # run 1
@@ -175,12 +174,9 @@ class DemoCollector(object):
         print("Demo file saved successfully")
         quit()
 
-        quit()
-
     def start_log(self):
         """ Start logging in .txt format."""
-        self.data = defaultdict(lambda: defaultdict(list))
-#        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
+        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
         """ Randomly set target within joint limit and workspace limit.
@@ -311,6 +307,7 @@ class DemoCollector(object):
         self.j4_pos_command_pub.publish(self.q_desired[3])
         self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
 
+        data = OrderedDict()
         obs = np.concatenate(
             (
                 self._gripper_pos,
@@ -320,11 +317,10 @@ class DemoCollector(object):
                 self.effort,
             )
         )
-
-        # append data
-        self.data[self.num_cur_demo]["observation"].append(obs.tolist())
-        self.data[self.num_cur_demo]["desired q"].append(self.q_desired.tolist())
-        self.data[self.num_cur_demo]["target"].append(self.T_target[0:3, 3].tolist())
+        data["observation"] = obs.tolist()
+        data["desired q"] = self.q_desired.tolist()
+        data["target"] = self.T_target[0:3, 3].tolist()
+        json.dump(data, self.f, ensure_ascii=False)
 
         if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
             self.is_set_new_target = False
@@ -333,6 +329,7 @@ class DemoCollector(object):
             self.control_start_time = (
                 rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
             )
+            self.f.close()
             print("Target arrived!")
 
     def move_to_init(self):
