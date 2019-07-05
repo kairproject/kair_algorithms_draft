@@ -33,12 +33,9 @@ class DemoCollector(object):
 
         self.init_shared_variables()
         self.init_observation()
-        self.is_init_states()
 
         self.init_subscriber()
         self.init_publisher()
-
-        self.run()
 
     def print_start_message(self):
         if self.use_platform is False:
@@ -59,6 +56,7 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
+        # TODO: extract num_tar_demo to config
         self.num_tar_demo = 3
         self.num_cur_demo = 0
 
@@ -68,12 +66,6 @@ class DemoCollector(object):
         """Initialize observation"""
         self._gripper_pos = np.zeros(3)
         self._gripper_orientation = np.zeros(4)
-
-    def is_init_states(self):
-        """Initialize variable whick checks if task is done."""
-        self.is_set_new_target = False
-        self.is_init_pos = False
-        self.is_finished = False
 
     def init_subscriber(self):
         """Initialize joint states subscriber."""
@@ -118,26 +110,28 @@ class DemoCollector(object):
         6) If number of target demo is bigger than number of current demo, finish demo
         collection.
         """
+        # TODO: extract 100 to config
         self.r = rospy.Rate(100)
         self.start_log()
-        # remember init q?
         self.q_init = list(self.q)
+        self.done_move_to_target = False
 
         for i in range(self.num_tar_demo):
+            print("Episode: ", i)
             rospy.loginfo("Moving to Initial Position")
+            self.done_init = False
             self.control_start_time = self.get_rostime()
             # go to init pose
-            while not self.is_init_pos:
+            while not self.done_init:
                 self.move_to_init()
                 self.r.sleep()
 
             self.set_target()
             # TODO: replace is_set_new_target to done(move_to_target)
-            self.is_set_new_target = False
             self.T_init = np.array(self.robot.forward(self.q))
             self.control_start_time = self.get_rostime()
             # go to target
-            while not self.is_set_new_target:
+            while not self.done_move_to_target:
                 self.move_to_target()  # run 3
                 self.r.sleep()
 
@@ -208,13 +202,12 @@ class DemoCollector(object):
                 if target[2] > 0.04:
                     self.T_target[0:3, 3] = target
                     appropriate_target = True
-        print("Episode ", self.num_cur_demo)
         print("Target :", self.T_target[0:3, 3])
         return
 
     def move_to_target(self, rollout_num):
-        """Move robot to target."""
-      
+        """Move robot to target.
+
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
@@ -303,16 +296,20 @@ class DemoCollector(object):
         self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
         self.data[rollout_num]["target"].append(self.T_target[0:3, 3].tolist())
 
-        if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
-            self.is_set_new_target = True
-            self.is_init_pos = False
-            self.q_init = list(self.q)
-            self.control_start_time = self.get_rostime()
-            print("Target arrived!")
+        def _is_done_move_to_target():
+            if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
+                self.q_init = list(self.q)
+                self.control_start_time = self.get_rostime()
+                print("Target arrived!")
+                return True
+            else:
+                return False
+
+        self.done_move_to_target = self._is_done_move_to_target()
 
     def move_to_init(self):
         """Move robot to initial pose."""
-        t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
+        t_now = self.get_rostime()
         for i in range(4):
             self.q_desired[i] = self.cubic(
                 t_now,
@@ -331,10 +328,15 @@ class DemoCollector(object):
         self.j4_pos_command_pub.publish(self.q_desired[3])
         self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
 
-        if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
-            time.sleep(2.0)
-            self.is_init_pos = True
-            print("Initial Pose Arrived!")
+        def _is_done_init():
+            if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
+                time.sleep(2.0)
+                print("Initial Pose Arrived!")
+                return True
+            else:
+                return False
+
+        self.done_init = self._is_done_init()
 
     def joint_limit_check(self, q_target):
         q_limit_L = [-pi * 0.9, -pi * 0.57, -pi * 0.3, -pi * 0.57]
@@ -379,10 +381,12 @@ class DemoCollector(object):
 
         return x_t
 
+
 def main():
     rospy.init_node("demo_collector")
     try:
-        DemoCollector()
+        demo_collector = DemoCollector()
+        demo_collector.run()
     except rospy.ROSInterruptException:
         pass
 
