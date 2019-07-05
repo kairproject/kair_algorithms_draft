@@ -8,7 +8,7 @@ import json
 import random
 import threading
 import time
-from collections import OrderedDict
+from collections import defaultdict
 from math import pi, pow
 import numpy as np
 import rospy
@@ -61,7 +61,7 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
-        self.num_tar_demo = 10
+        self.num_tar_demo = 3
         self.num_cur_demo = 0
 
         self.control_start_time = (
@@ -138,6 +138,7 @@ class DemoCollector(object):
         collection.
         """
         self.r = rospy.Rate(100)
+        self.start_log()
         while not self.is_finished:
             if self.is_joint_states_cb is True:
                 # run 1
@@ -148,9 +149,7 @@ class DemoCollector(object):
                         rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
                     )
                     self.init = True
-                # run 2
-                if self.is_set_new_target is False and self.is_init_pos:
-                    self.start_log()
+                if self.is_set_new_target is False and self.is_init_pos:  # run 2
                     self.set_target()
                     self.T_init = np.array(self.robot.forward(self.q))
                     self.control_start_time = (
@@ -171,12 +170,17 @@ class DemoCollector(object):
             if self.num_cur_demo > self.num_tar_demo:
                 print("Demo Collection Finished!")
                 self.is_finished = True
+        with open("../DemoCollection.json", "w") as f:
+            json.dump(self.data, f)
+        print("Demo file saved successfully")
+        quit()
 
         quit()
 
     def start_log(self):
         """ Start logging in .txt format."""
-        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
+        self.data = defaultdict(lambda: defaultdict(list))
+#        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
         """ Randomly set target within joint limit and workspace limit.
@@ -307,7 +311,6 @@ class DemoCollector(object):
         self.j4_pos_command_pub.publish(self.q_desired[3])
         self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
 
-        data = OrderedDict()
         obs = np.concatenate(
             (
                 self._gripper_pos,
@@ -317,10 +320,11 @@ class DemoCollector(object):
                 self.effort,
             )
         )
-        data["observation"] = obs.tolist()
-        data["desired q"] = self.q_desired.tolist()
-        data["target"] = self.T_target[0:3, 3].tolist()
-        json.dump(data, self.f, ensure_ascii=False)
+
+        # append data
+        self.data[self.num_cur_demo]["observation"].append(obs.tolist())
+        self.data[self.num_cur_demo]["desired q"].append(self.q_desired.tolist())
+        self.data[self.num_cur_demo]["target"].append(self.T_target[0:3, 3].tolist())
 
         if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
             self.is_set_new_target = False
@@ -329,7 +333,6 @@ class DemoCollector(object):
             self.control_start_time = (
                 rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
             )
-            self.f.close()
             print("Target arrived!")
 
     def move_to_init(self):
