@@ -62,9 +62,7 @@ class DemoCollector(object):
         self.num_tar_demo = 3
         self.num_cur_demo = 0
 
-        self.control_start_time = (
-            rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-        )
+        self.control_start_time = self.get_rostime()
 
     def init_observation(self):
         """Initialize observation"""
@@ -73,8 +71,6 @@ class DemoCollector(object):
 
     def is_init_states(self):
         """Initialize variable whick checks if task is done."""
-        self.init = False
-        self.is_joint_states_cb = False
         self.is_set_new_target = False
         self.is_init_pos = False
         self.is_finished = False
@@ -108,6 +104,9 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def get_rostime(self):
+        return rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
+
     def run(self):
         """Run demo collection.
 
@@ -121,32 +120,29 @@ class DemoCollector(object):
         """
         self.r = rospy.Rate(100)
         self.start_log()
-        while not self.is_finished:
-            if self.is_joint_states_cb is True:
-                if self.init is False:
-                    rospy.loginfo("Moving to Initial Position")  # run 1
-                    self.q_init = list(self.q)
-                    self.control_start_time = (
-                        rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-                    )
-                    self.init = True
-                if self.is_set_new_target is False and self.is_init_pos:  # run 2
-                    self.set_target()
-                    self.T_init = np.array(self.robot.forward(self.q))
-                    self.control_start_time = (
-                        rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-                    )
-                    self.is_set_new_target = True
-                    self.num_cur_demo = self.num_cur_demo + 1
-                if self.is_set_new_target is True:
-                    self.move_to_target()  # run 3
-                if self.is_init_pos is False:
-                    self.move_to_init()  # run 4
-            if self.is_set_new_target is True or self.is_init_pos is False:
-                self.r.sleep()  # run 5
-            if self.num_cur_demo > self.num_tar_demo:
-                print("Demo Collection Finished!")  # run 6
-                self.is_finished = True
+        # remember init q?
+        self.q_init = list(self.q)
+
+        for i in range(self.num_tar_demo):
+            rospy.loginfo("Moving to Initial Position")
+            self.control_start_time = self.get_rostime()
+            # go to init pose
+            while not self.is_init_pos:
+                self.move_to_init()
+                self.r.sleep()
+
+            self.set_target()
+            # TODO: replace is_set_new_target to done(move_to_target)
+            self.is_set_new_target = False
+            self.T_init = np.array(self.robot.forward(self.q))
+            self.control_start_time = self.get_rostime()
+            # go to target
+            while not self.is_set_new_target:
+                self.move_to_target()  # run 3
+                self.r.sleep()
+
+        # TODO: save demo to method
+        print("Demo Collection Finished!")
         with open("../DemoCollection.json", "w") as f:
             json.dump(self.data, f)
         print("Demo file saved successfully")
@@ -154,7 +150,6 @@ class DemoCollector(object):
 
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member."""
-        self.is_joint_states_cb = True
         i = 0
         while i < 4:
             self.q[i] = joint_states.position[i + 2]
@@ -163,9 +158,8 @@ class DemoCollector(object):
             i += 1
 
     def start_log(self):
-        """ Start logging in .txt format."""
+        """ Start logging in dict(dict(list)) type."""
         self.data = defaultdict(lambda: defaultdict(list))
-#        self.f = open("../DemoEpisode" + str(self.num_cur_demo) + ".txt", "w")
 
     def set_target(self):
         """ Randomly set target within joint limit and workspace limit.
@@ -218,9 +212,9 @@ class DemoCollector(object):
         print("Target :", self.T_target[0:3, 3])
         return
 
-    def move_to_target(self):
-        """Move robot to target.
-
+    def move_to_target(self, rollout_num):
+        """Move robot to target."""
+      
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
@@ -305,17 +299,15 @@ class DemoCollector(object):
         )
 
         # append data
-        self.data[self.num_cur_demo]["observation"].append(obs.tolist())
-        self.data[self.num_cur_demo]["desired q"].append(self.q_desired.tolist())
-        self.data[self.num_cur_demo]["target"].append(self.T_target[0:3, 3].tolist())
+        self.data[rollout_num]["observation"].append(obs.tolist())
+        self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
+        self.data[rollout_num]["target"].append(self.T_target[0:3, 3].tolist())
 
         if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
-            self.is_set_new_target = False
+            self.is_set_new_target = True
             self.is_init_pos = False
             self.q_init = list(self.q)
-            self.control_start_time = (
-                rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-            )
+            self.control_start_time = self.get_rostime()
             print("Target arrived!")
 
     def move_to_init(self):
