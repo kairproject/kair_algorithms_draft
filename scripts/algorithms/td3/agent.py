@@ -250,6 +250,10 @@ class Agent(AbstractAgent):
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
 
+                ## DEBUG
+                if i_episode % 100 == 0:
+                    print("[OBSERV] :{}".format(["{:.05f}".format(x) for x in next_state]))
+
                 if len(self.memory) >= self.hyper_params["BATCH_SIZE"]:
                     experiences = self.memory.sample()
                     loss = self.update_model(experiences)
