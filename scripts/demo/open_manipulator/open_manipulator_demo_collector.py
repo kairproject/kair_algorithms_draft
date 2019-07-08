@@ -30,6 +30,7 @@ class DemoCollector(object):
 
         self.robot_urdf = URDF.from_parameter_server()
         self.robot = KDLKinematics(self.robot_urdf, "world", "end_effector_link")
+        self.save_path = "../DemoCollection.json"
 
         self.init_shared_variables()
         self.init_observation()
@@ -111,7 +112,8 @@ class DemoCollector(object):
         collection.
         """
         # TODO: extract 100 to config
-        self.r = rospy.Rate(100)
+        self.hz = 100
+        self.r = rospy.Rate(self.hz)
         self.start_log()
         self.q_init = list(self.q)
         self.done_move_to_target = False
@@ -119,9 +121,9 @@ class DemoCollector(object):
         for i in range(self.num_tar_demo):
             print("Episode: ", i)
             rospy.loginfo("Moving to Initial Position")
+            # go to init pose
             self.done_init = False
             self.control_start_time = self.get_rostime()
-            # go to init pose
             while not self.done_init:
                 self.move_to_init()
                 self.r.sleep()
@@ -129,27 +131,27 @@ class DemoCollector(object):
             self.set_target()
             # TODO: replace is_set_new_target to done(move_to_target)
             self.T_init = np.array(self.robot.forward(self.q))
-            self.control_start_time = self.get_rostime()
             # go to target
+            self.control_start_time = self.get_rostime()
             while not self.done_move_to_target:
-                self.move_to_target()  # run 3
+                self.move_to_target(i)  # run 3
                 self.r.sleep()
 
-        # TODO: save demo to method
         print("Demo Collection Finished!")
-        with open("../DemoCollection.json", "w") as f:
+        self.save_demo_collection(self.save_path)
+        quit()
+
+    def save_demo_collection(self, save_path):
+        with open(save_path, "w") as f:
             json.dump(self.data, f)
         print("Demo file saved successfully")
-        quit()
 
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member."""
-        i = 0
-        while i < 4:
+        for i in range(4):
             self.q[i] = joint_states.position[i + 2]
             self.qdot[i] = joint_states.velocity[i + 2]
             self.effort[i] = joint_states.effort[i + 2]
-            i += 1
 
     def start_log(self):
         """ Start logging in dict(dict(list)) type."""
@@ -186,8 +188,8 @@ class DemoCollector(object):
                 q_rand[i] = rand_scale[i] * (q_limit_H[i] - q_limit_L[i]) + q_limit_L[i]
 
             self.T_target = np.array(self.robot.forward(q_rand))
-            target = np.empty_like(self.T_target[0:3, 3])
-            target[:] = self.T_target[0:3, 3]
+            target = np.empty_like(self.T_target[:3, 3])
+            target[:] = self.T_target[:3, 3]
 
             min_op_distance = 0.15
             max_op_distance = 0.4
@@ -200,13 +202,15 @@ class DemoCollector(object):
 
             if target[0] > 0.0:
                 if target[2] > 0.04:
-                    self.T_target[0:3, 3] = target
+                    self.T_target[:3, 3] = target
                     appropriate_target = True
-        print("Target :", self.T_target[0:3, 3])
+        print("Target :", self.T_target[:3, 3])
         return
 
     def move_to_target(self, rollout_num):
         """Move robot to target.
+        Resolved Rate Motion Control
+        material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
@@ -222,11 +226,12 @@ class DemoCollector(object):
         8) Save file.
         """
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
+        # TODO: why mutex needed?
         with self.mutex:
             q_now = self.q
 
         self.T_cur = np.array(self.robot.forward(q_now))
-        self._gripper_pos = self.T_cur[0:3, 3]
+        self._gripper_pos = self.T_cur[:3, 3]
         self._gripper_orientation[3] = (
             1 + self.T_cur[0, 0] + self.T_cur[1, 1] + self.T_cur[2, 2]
         ) ** 0.5
@@ -251,10 +256,10 @@ class DemoCollector(object):
                 0.0,
             )
 
-        e = self.T_goal[0:3, 3] - self.T_cur[0:3, 3]
+        e = self.T_goal[:3, 3] - self.T_cur[:3, 3]
 
         Jb = np.array(self.robot.jacobian(q_now))
-        Jv = Jb[0:3, :]
+        Jv = Jb[:3, :]
 
         invterm = np.linalg.inv(np.dot(Jv, Jv.T) + pow(self.damping, 2) * np.eye(3))
         kp = 2.0
@@ -268,10 +273,10 @@ class DemoCollector(object):
         else:
             scale = plus_v
         if scale > self.joint_vel_limit:
-            qdot_new = 2.0 * (qdot_new / scale) * self.joint_vel_limit
+            qdot_new = qdot_new / scale * self.joint_vel_limit
         self.qdot = qdot_new
 
-        dt = 0.01
+        dt = 1 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
 
@@ -294,12 +299,11 @@ class DemoCollector(object):
         # append data
         self.data[rollout_num]["observation"].append(obs.tolist())
         self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
-        self.data[rollout_num]["target"].append(self.T_target[0:3, 3].tolist())
+        self.data[rollout_num]["target"].append(self.T_target[:3, 3].tolist())
 
         def _is_done_move_to_target():
-            if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
+            if np.mean(np.abs(self.T_target[:3, 3] - self.T_cur[:3, 3])) < 0.001:
                 self.q_init = list(self.q)
-                self.control_start_time = self.get_rostime()
                 print("Target arrived!")
                 return True
             else:
@@ -349,20 +353,25 @@ class DemoCollector(object):
         return q_target
 
     def cubic(self, time, time_0, time_f, x_0, x_f, x_dot_0, x_dot_f):
+        """
+        material: http://ocw.snu.ac.kr/sites/default/files/NOTE/Chap07_Trajectory%20generation.pdf
+        """
         x_t = x_0
 
         if time < time_0:
-            x_t = x_0
+            x_t = x_0  # theta(0)
 
         elif time > time_f:
-            x_t = x_f
+            x_t = x_f  # theta(t_f)
         else:
-            elapsed_time = time - time_0
-            total_time = time_f - time_0
-            total_time2 = total_time * total_time
-            total_time3 = total_time2 * total_time
+            # 시간을 쪼개서 이동한다.
+            elapsed_time = time - time_0  # t
+            total_time = time_f - time_0  # t_f
+            total_time2 = total_time * total_time  # t_f^2
+            total_time3 = total_time2 * total_time  # t_f^3
             total_x = x_f - x_0
 
+            # theta(t)
             x_t = (
                 x_0
                 + x_dot_0 * elapsed_time
