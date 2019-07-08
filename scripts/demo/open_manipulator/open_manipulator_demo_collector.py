@@ -22,7 +22,6 @@ class DemoCollector(object):
     """Demo collector class which controls openmanipulator based on jacobain method."""
 
     def __init__(self):
-
         rospy.loginfo("Start Demo Collector")
         # TODO: Receive True or False with parser to check real or simulation.
         self.use_platform = rospy.get_param("~use_platform", False)
@@ -379,11 +378,9 @@ class DemoCollector(object):
             elapsed_t = t - t_0  # t
             total_t = t_f - t_0  # t_f
 
-            x_t = (x_0 +
-                   x_dot_0 * elapsed_t +
-                   (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2 +
-                   (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3
-            )
+            x_t = (x_0 + x_dot_0 * elapsed_t
+                   + (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2
+                   + (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3)
         return x_t
 
 
