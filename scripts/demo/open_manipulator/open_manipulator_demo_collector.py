@@ -234,6 +234,8 @@ class DemoCollector(object):
 
     def move_to_target(self, rollout_num):
         """Move robot to target.
+        Resolved Rate Motion Control
+        material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
         [Resolved Rate Motion Control]
           - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
