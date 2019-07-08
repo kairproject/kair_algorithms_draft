@@ -209,8 +209,9 @@ class DemoCollector(object):
 
     def move_to_target(self, rollout_num):
         """Move robot to target.
-        Resolved Rate Motion Control
-        material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
+
+        [Resolved Rate Motion Control]
+          - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
@@ -245,6 +246,7 @@ class DemoCollector(object):
             4 * self._gripper_orientation[3]
         )
 
+        # implement multi-array cubic calculation
         for i in range(3):
             self.T_goal[i, 3] = self.cubic(
                 t_now,
@@ -266,15 +268,18 @@ class DemoCollector(object):
         qdot_new = np.dot(np.dot(Jv.T, invterm), kp * e)
 
         # Scaling joint velocity
-        minus_v = abs(np.amin(qdot_new))
-        plus_v = abs(np.amax(qdot_new))
-        if minus_v > plus_v:
-            scale = minus_v
-        else:
-            scale = plus_v
-        if scale > self.joint_vel_limit:
-            qdot_new = qdot_new / scale * self.joint_vel_limit
-        self.qdot = qdot_new
+        def _scaling_q_dot(qdot_new):
+            minus_v = abs(np.amin(qdot_new))
+            plus_v = abs(np.amax(qdot_new))
+            if minus_v > plus_v:
+                scale = minus_v
+            else:
+                scale = plus_v
+            if scale > self.joint_vel_limit:
+                qdot_new = qdot_new / scale * self.joint_vel_limit
+            return qdot_new
+
+        self.qdot = _scaling_q_dot(qdot_new)
 
         dt = 1 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
@@ -309,7 +314,7 @@ class DemoCollector(object):
             else:
                 return False
 
-        self.done_move_to_target = self._is_done_move_to_target()
+        self.done_move_to_target = _is_done_move_to_target()
 
     def move_to_init(self):
         """Move robot to initial pose."""
@@ -340,7 +345,7 @@ class DemoCollector(object):
             else:
                 return False
 
-        self.done_init = self._is_done_init()
+        self.done_init = _is_done_init()
 
     def joint_limit_check(self, q_target):
         q_limit_L = [-pi * 0.9, -pi * 0.57, -pi * 0.3, -pi * 0.57]
@@ -352,42 +357,34 @@ class DemoCollector(object):
                 q_target[i] = q_limit_H[i]
         return q_target
 
-    def cubic(self, time, time_0, time_f, x_0, x_f, x_dot_0, x_dot_f):
+    def cubic(self, t, t_0, t_f, x_0, x_f, x_dot_0, x_dot_f):
         """
-        material: http://ocw.snu.ac.kr/sites/default/files/NOTE/Chap07_Trajectory%20generation.pdf
-        """
-        x_t = x_0
+        [Cubic polynomials]
+          - material: http://ocw.snu.ac.kr/sites/default/files/NOTE/Chap07_Trajectory%20generation.pdf
 
-        if time < time_0:
+        t: time
+        t_0: init time
+        t_f: final time
+        x_0: init position
+        x_f: final position
+        x_dot_0: velocity when x_0
+        x_dot_f: velocity when x_f
+        """
+        # don't we need assertion?
+        if t < t_0:
             x_t = x_0  # theta(0)
-
-        elif time > time_f:
+        elif t > t_f:
             x_t = x_f  # theta(t_f)
         else:
-            # 시간을 쪼개서 이동한다.
-            elapsed_time = time - time_0  # t
-            total_time = time_f - time_0  # t_f
-            total_time2 = total_time * total_time  # t_f^2
-            total_time3 = total_time2 * total_time  # t_f^3
             total_x = x_f - x_0
+            elapsed_t = t - t_0  # t
+            total_t = t_f - t_0  # t_f
 
-            # theta(t)
-            x_t = (
-                x_0
-                + x_dot_0 * elapsed_time
-                + (
-                    3 * total_x / total_time2
-                    - 2 * x_dot_0 / total_time
-                    - x_dot_f / total_time
-                )
-                * elapsed_time
-                * elapsed_time
-                + (-2 * total_x / total_time3 + (x_dot_0 + x_dot_f) / total_time2)
-                * elapsed_time
-                * elapsed_time
-                * elapsed_time
+            x_t = (x_0 +
+                   x_dot_0 * elapsed_t +
+                   (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2 +
+                   (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3
             )
-
         return x_t
 
 
