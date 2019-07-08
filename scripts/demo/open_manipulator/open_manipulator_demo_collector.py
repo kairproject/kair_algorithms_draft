@@ -268,7 +268,7 @@ class DemoCollector(object):
         qdot_new = np.dot(np.dot(Jv.T, invterm), kp * e)
 
         # Scaling joint velocity
-        def _scaling_q_dot(qdot_new):
+        def _limit_q_dot(qdot_new):
             minus_v = abs(np.amin(qdot_new))
             plus_v = abs(np.amax(qdot_new))
             if minus_v > plus_v:
@@ -279,9 +279,9 @@ class DemoCollector(object):
                 qdot_new = qdot_new / scale * self.joint_vel_limit
             return qdot_new
 
-        self.qdot = _scaling_q_dot(qdot_new)
+        self.qdot = _limit_q_dot(qdot_new)
 
-        dt = 1 / self.hz
+        dt = 1.0 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
 
@@ -370,7 +370,6 @@ class DemoCollector(object):
         x_dot_0: velocity when x_0
         x_dot_f: velocity when x_f
         """
-        # don't we need assertion?
         if t < t_0:
             x_t = x_0  # theta(0)
         elif t > t_f:
