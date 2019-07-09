@@ -22,7 +22,6 @@ class DemoCollector(object):
     """Demo collector class which controls openmanipulator based on jacobain method."""
 
     def __init__(self):
-
         rospy.loginfo("Start Demo Collector")
         # TODO: Receive True or False with parser to check real or simulation.
         self.use_platform = rospy.get_param("~use_platform", False)
@@ -30,15 +29,13 @@ class DemoCollector(object):
 
         self.robot_urdf = URDF.from_parameter_server()
         self.robot = KDLKinematics(self.robot_urdf, "world", "end_effector_link")
+        self.save_path = "../DemoCollection.json"
 
         self.init_shared_variables()
         self.init_observation()
-        self.is_init_states()
 
         self.init_subscriber()
         self.init_publisher()
-
-        self.run()
 
     def print_start_message(self):
         if self.use_platform is False:
@@ -59,6 +56,7 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
+        # TODO: extract num_tar_demo to config
         self.num_tar_demo = 3
         self.num_cur_demo = 0
 
@@ -68,12 +66,6 @@ class DemoCollector(object):
         """Initialize observation"""
         self._gripper_pos = np.zeros(3)
         self._gripper_orientation = np.zeros(4)
-
-    def is_init_states(self):
-        """Initialize variable whick checks if task is done."""
-        self.is_set_new_target = False
-        self.is_init_pos = False
-        self.is_finished = False
 
     def init_subscriber(self):
         """Initialize joint states subscriber."""
@@ -118,44 +110,47 @@ class DemoCollector(object):
         6) If number of target demo is bigger than number of current demo, finish demo
         collection.
         """
-        self.r = rospy.Rate(100)
+        # TODO: extract 100 to config
+        self.hz = 100
+        self.r = rospy.Rate(self.hz)
         self.start_log()
-        # remember init q?
         self.q_init = list(self.q)
+        self.done_move_to_target = False
 
         for i in range(self.num_tar_demo):
+            print("Episode: ", i)
             rospy.loginfo("Moving to Initial Position")
-            self.control_start_time = self.get_rostime()
             # go to init pose
-            while not self.is_init_pos:
+            self.done_init = False
+            self.control_start_time = self.get_rostime()
+            while not self.done_init:
                 self.move_to_init()
                 self.r.sleep()
 
             self.set_target()
             # TODO: replace is_set_new_target to done(move_to_target)
-            self.is_set_new_target = False
             self.T_init = np.array(self.robot.forward(self.q))
-            self.control_start_time = self.get_rostime()
             # go to target
-            while not self.is_set_new_target:
-                self.move_to_target()  # run 3
+            self.control_start_time = self.get_rostime()
+            while not self.done_move_to_target:
+                self.move_to_target(i)  # run 3
                 self.r.sleep()
 
-        # TODO: save demo to method
         print("Demo Collection Finished!")
-        with open("../DemoCollection.json", "w") as f:
+        self.save_demo_collection(self.save_path)
+        quit()
+
+    def save_demo_collection(self, save_path):
+        with open(save_path, "w") as f:
             json.dump(self.data, f)
         print("Demo file saved successfully")
-        quit()
 
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member."""
-        i = 0
-        while i < 4:
+        for i in range(4):
             self.q[i] = joint_states.position[i + 2]
             self.qdot[i] = joint_states.velocity[i + 2]
             self.effort[i] = joint_states.effort[i + 2]
-            i += 1
 
     def start_log(self):
         """ Start logging in dict(dict(list)) type."""
@@ -192,8 +187,8 @@ class DemoCollector(object):
                 q_rand[i] = rand_scale[i] * (q_limit_H[i] - q_limit_L[i]) + q_limit_L[i]
 
             self.T_target = np.array(self.robot.forward(q_rand))
-            target = np.empty_like(self.T_target[0:3, 3])
-            target[:] = self.T_target[0:3, 3]
+            target = np.empty_like(self.T_target[:3, 3])
+            target[:] = self.T_target[:3, 3]
 
             min_op_distance = 0.15
             max_op_distance = 0.4
@@ -206,15 +201,17 @@ class DemoCollector(object):
 
             if target[0] > 0.0:
                 if target[2] > 0.04:
-                    self.T_target[0:3, 3] = target
+                    self.T_target[:3, 3] = target
                     appropriate_target = True
-        print("Episode ", self.num_cur_demo)
-        print("Target :", self.T_target[0:3, 3])
+        print("Target :", self.T_target[:3, 3])
         return
 
     def move_to_target(self, rollout_num):
-        """Move robot to target."""
-      
+        """Move robot to target.
+
+        [Resolved Rate Motion Control]
+          - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
+
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
@@ -229,11 +226,12 @@ class DemoCollector(object):
         8) Save file.
         """
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
+        # TODO: why mutex needed?
         with self.mutex:
             q_now = self.q
 
         self.T_cur = np.array(self.robot.forward(q_now))
-        self._gripper_pos = self.T_cur[0:3, 3]
+        self._gripper_pos = self.T_cur[:3, 3]
         self._gripper_orientation[3] = (
             1 + self.T_cur[0, 0] + self.T_cur[1, 1] + self.T_cur[2, 2]
         ) ** 0.5
@@ -247,6 +245,7 @@ class DemoCollector(object):
             4 * self._gripper_orientation[3]
         )
 
+        # implement multi-array cubic calculation
         for i in range(3):
             self.T_goal[i, 3] = self.cubic(
                 t_now,
@@ -258,27 +257,30 @@ class DemoCollector(object):
                 0.0,
             )
 
-        e = self.T_goal[0:3, 3] - self.T_cur[0:3, 3]
+        e = self.T_goal[:3, 3] - self.T_cur[:3, 3]
 
         Jb = np.array(self.robot.jacobian(q_now))
-        Jv = Jb[0:3, :]
+        Jv = Jb[:3, :]
 
         invterm = np.linalg.inv(np.dot(Jv, Jv.T) + pow(self.damping, 2) * np.eye(3))
         kp = 2.0
         qdot_new = np.dot(np.dot(Jv.T, invterm), kp * e)
 
         # Scaling joint velocity
-        minus_v = abs(np.amin(qdot_new))
-        plus_v = abs(np.amax(qdot_new))
-        if minus_v > plus_v:
-            scale = minus_v
-        else:
-            scale = plus_v
-        if scale > self.joint_vel_limit:
-            qdot_new = 2.0 * (qdot_new / scale) * self.joint_vel_limit
-        self.qdot = qdot_new
+        def _limit_q_dot(qdot_new):
+            minus_v = abs(np.amin(qdot_new))
+            plus_v = abs(np.amax(qdot_new))
+            if minus_v > plus_v:
+                scale = minus_v
+            else:
+                scale = plus_v
+            if scale > self.joint_vel_limit:
+                qdot_new = qdot_new / scale * self.joint_vel_limit
+            return qdot_new
 
-        dt = 0.01
+        self.qdot = _limit_q_dot(qdot_new)
+
+        dt = 1.0 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
 
@@ -301,18 +303,21 @@ class DemoCollector(object):
         # append data
         self.data[rollout_num]["observation"].append(obs.tolist())
         self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
-        self.data[rollout_num]["target"].append(self.T_target[0:3, 3].tolist())
+        self.data[rollout_num]["target"].append(self.T_target[:3, 3].tolist())
 
-        if np.mean(np.abs(self.T_target[0:3, 3] - self.T_cur[0:3, 3])) < 0.001:
-            self.is_set_new_target = True
-            self.is_init_pos = False
-            self.q_init = list(self.q)
-            self.control_start_time = self.get_rostime()
-            print("Target arrived!")
+        def _is_done_move_to_target():
+            if np.mean(np.abs(self.T_target[:3, 3] - self.T_cur[:3, 3])) < 0.001:
+                self.q_init = list(self.q)
+                print("Target arrived!")
+                return True
+            else:
+                return False
+
+        self.done_move_to_target = _is_done_move_to_target()
 
     def move_to_init(self):
         """Move robot to initial pose."""
-        t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
+        t_now = self.get_rostime()
         for i in range(4):
             self.q_desired[i] = self.cubic(
                 t_now,
@@ -331,10 +336,15 @@ class DemoCollector(object):
         self.j4_pos_command_pub.publish(self.q_desired[3])
         self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
 
-        if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
-            time.sleep(2.0)
-            self.is_init_pos = True
-            print("Initial Pose Arrived!")
+        def _is_done_init():
+            if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
+                time.sleep(2.0)
+                print("Initial Pose Arrived!")
+                return True
+            else:
+                return False
+
+        self.done_init = _is_done_init()
 
     def joint_limit_check(self, q_target):
         q_limit_L = [-pi * 0.9, -pi * 0.57, -pi * 0.3, -pi * 0.57]
@@ -346,43 +356,39 @@ class DemoCollector(object):
                 q_target[i] = q_limit_H[i]
         return q_target
 
-    def cubic(self, time, time_0, time_f, x_0, x_f, x_dot_0, x_dot_f):
-        x_t = x_0
+    def cubic(self, t, t_0, t_f, x_0, x_f, x_dot_0, x_dot_f):
+        """
+        [Cubic polynomials]
+          - material: http://ocw.snu.ac.kr/sites/default/files/NOTE/Chap07_Trajectory%20generation.pdf
 
-        if time < time_0:
-            x_t = x_0
-
-        elif time > time_f:
-            x_t = x_f
+        t: time
+        t_0: init time
+        t_f: final time
+        x_0: init position
+        x_f: final position
+        x_dot_0: velocity when x_0
+        x_dot_f: velocity when x_f
+        """
+        if t < t_0:
+            x_t = x_0  # theta(0)
+        elif t > t_f:
+            x_t = x_f  # theta(t_f)
         else:
-            elapsed_time = time - time_0
-            total_time = time_f - time_0
-            total_time2 = total_time * total_time
-            total_time3 = total_time2 * total_time
             total_x = x_f - x_0
+            elapsed_t = t - t_0  # t
+            total_t = t_f - t_0  # t_f
 
-            x_t = (
-                x_0
-                + x_dot_0 * elapsed_time
-                + (
-                    3 * total_x / total_time2
-                    - 2 * x_dot_0 / total_time
-                    - x_dot_f / total_time
-                )
-                * elapsed_time
-                * elapsed_time
-                + (-2 * total_x / total_time3 + (x_dot_0 + x_dot_f) / total_time2)
-                * elapsed_time
-                * elapsed_time
-                * elapsed_time
-            )
-
+            x_t = (x_0 + x_dot_0 * elapsed_t
+                   + (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2
+                   + (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3)
         return x_t
+
 
 def main():
     rospy.init_node("demo_collector")
     try:
-        DemoCollector()
+        demo_collector = DemoCollector()
+        demo_collector.run()
     except rospy.ROSInterruptException:
         pass
 
