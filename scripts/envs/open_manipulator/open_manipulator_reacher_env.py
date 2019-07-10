@@ -85,7 +85,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         obs = self.ros_interface.get_observation()
 
         if self.episode_steps == self._max_episode_steps:
-            self.done = True
+            self.done = False
             self.episode_steps = 0
 
         return obs, self.reward_rescale_ratio * self.reward, self.done, None
