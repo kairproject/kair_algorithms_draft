@@ -44,7 +44,33 @@ class DemoCollector(object):
             rospy.loginfo("Start Real Demo Collector")
 
     def init_shared_variables(self):
-        """Initialize shared variables."""
+        """Initialize shared variables.
+
+        q, qdot, effort: 4 size array.
+        Receive from joint state callback.
+
+        q: [joint1_position, joint2_position, joint3_position, joint4_position]
+        qdot: [joint1_velocity, joint2_velocity, joint3_velocity, joint4_velocity]
+        effot: [joint1_torque, joint2_torque, joint3_torque, joint4_torque]
+        ex) [q1, q2, q3, q4]
+
+        T: 4x4 transformation matrix
+        Get matrix by solve forward kinematics.
+        [R p
+         0 1]
+          - R: Rotation matrix
+          - p: position
+        ex)
+        [s -c  0  x
+         c  s  0  y
+         0  0  1  z
+         0  0  0  1]
+
+        [Homogeneous Transformation Matrices]
+          - material: https://www.youtube.com/watch?v=vlb3P7arbkU
+        [Forward Kinematics]
+          - material: https://www.youtube.com/watch?v=hE_Duih_7JE&list=PLggLP4f-rq00efLcgMcG1m4k5CKlgRcGh
+        """
         self.mutex = threading.Lock()
         self.damping = rospy.get_param("~damping", 0.01)
         self.joint_vel_limit = rospy.get_param("~joint_vel_limit", 4)
@@ -96,6 +122,13 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def joint_states_cb(self, joint_states):
+        """ Save joint states published in ROS to class member."""
+        for i in range(4):
+            self.q[i] = joint_states.position[i + 2]
+            self.qdot[i] = joint_states.velocity[i + 2]
+            self.effort[i] = joint_states.effort[i + 2]
+
     def get_rostime(self):
         return rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
 
@@ -144,13 +177,6 @@ class DemoCollector(object):
         with open(save_path, "w") as f:
             json.dump(self.data, f)
         print("Demo file saved successfully")
-
-    def joint_states_cb(self, joint_states):
-        """ Save joint states published in ROS to class member."""
-        for i in range(4):
-            self.q[i] = joint_states.position[i + 2]
-            self.qdot[i] = joint_states.velocity[i + 2]
-            self.effort[i] = joint_states.effort[i + 2]
 
     def start_log(self):
         """ Start logging in dict(dict(list)) type."""
