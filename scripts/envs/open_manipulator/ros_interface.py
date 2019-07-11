@@ -10,7 +10,6 @@ import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel  # noqa
-from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
@@ -396,7 +395,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         """Set target block Gazebo model"""
         # random generated blocks for train
         if block_pose is None:
-            polar_rad, polar_theta, z, overhead_orientation = (
+            polar_rad, polar_theta, z, _ = (
                 np.random.uniform(*self.cfg["POLAR_RADIAN_BOUNDARY"]),
                 np.random.uniform(*self.cfg["POLAR_THETA_BOUNDARY"]),
                 np.random.uniform(*self.cfg["Z_BOUNDARY"]),

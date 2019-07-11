@@ -57,13 +57,13 @@ def test_rotate():
             "/open_manipulator/goal_joint_space_path_from_present", SetJointPosition
         )
         _ = task_space_srv("arm", _qpose, 2.0)
-    except rospy.ServiceException, e:
+    except rospy.ServiceException as e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
     _qpose.position[0] += -1.0
     _qpose.position[3] += -1.0
     try:
         _ = task_space_srv("arm", _qpose, 2.0)
-    except rospy.ServiceException, e:
+    except rospy.ServiceException as e:
         rospy.loginfo("Path planning service call failed: {0}".format(e))
 
 
@@ -103,7 +103,7 @@ def test_achieve_goal():
                 "/open_manipulator/goal_task_space_path", SetKinematicsPose
             )
             _ = task_space_srv("arm", "gripper", forward_pose, 2.0)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
         rospy.sleep(5.0)
         env.ros_interface.delete_target_block()
@@ -134,7 +134,7 @@ def test_workspace_limit():
                 "/open_manipulator/goal_task_space_path", SetKinematicsPose
             )
             _ = task_space_srv("arm", "gripper", forward_pose, 3.0)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.loginfo("Path planning service call failed: {0}".format(e))
         rospy.sleep(3.0)
         env.ros_interface.check_for_termination()
