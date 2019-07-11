@@ -265,7 +265,7 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
+        print(lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     def get_observation_space(self):
@@ -304,7 +304,7 @@ class OpenManipulatorRosBaseInterface(object):
         if dist < self.distance_threshold:
             self.success_count += 1
             if self.success_count == self.cfg["SUCCESS_COUNT"]:
-                print ("Current episode succeeded")
+                print("Current episode succeeded")
                 return True
             else:
                 return False
@@ -360,7 +360,7 @@ class OpenManipulatorRosBaseInterface(object):
             rospy.logwarn("OUT OF BOUNDARY : joint_1_limit exceeds")
 
         if self.termination_count == term_count:
-            print ("Current episode terminated")
+            print("Current episode terminated")
             self.termination_count = 0
             return True
         else:

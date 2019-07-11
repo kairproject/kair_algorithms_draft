@@ -6,9 +6,8 @@
 """
 
 import rospy
-
-from demo.open_manipulator.open_manipulator_demo_collector import DemoCollector
 from config.demo.open_manipulator.reacher_v0 import config as cfg
+from demo.open_manipulator.open_manipulator_demo_collector import DemoCollector
 
 
 def main():

@@ -225,7 +225,7 @@ class Agent(AbstractAgent):
     def load_params(self, path):
         """Load model and optimizer parameters."""
         if not os.path.exists(path):
-            print ("[ERROR] the input path does not exist. ->", path)
+            print("[ERROR] the input path does not exist. ->", path)
             return
 
         params = torch.load(path)
@@ -242,7 +242,7 @@ class Agent(AbstractAgent):
         if self.hyper_params["AUTO_ENTROPY_TUNING"]:
             self.alpha_optimizer.load_state_dict(params["alpha_optim"])
 
-        print ("[INFO] loaded the model and optimizer from", path)
+        print("[INFO] loaded the model and optimizer from", path)
 
     def save_params(self, n_episode):
         """Save model and optimizer parameters."""
@@ -267,7 +267,7 @@ class Agent(AbstractAgent):
         """Write log about loss and score"""
         total_loss = loss.sum()
 
-        print (
+        print(
             "[INFO] episode %d, episode_step %d, total step %d, total score: %d\n"
             "total loss: %.3f actor_loss: %.3f qf_1_loss: %.3f qf_2_loss: %.3f "
             "vf_loss: %.3f alpha_loss: %.3f\n"

@@ -75,7 +75,9 @@ class DemoCollector(object):
         """
         self.mutex = threading.Lock()
         self.damping = rospy.get_param("~damping", self.cfg["DAMPING"])
-        self.joint_vel_limit = rospy.get_param("~joint_vel_limit", self.cfg["JOINT_VEL_LIMIT"])
+        self.joint_vel_limit = rospy.get_param(
+            "~joint_vel_limit", self.cfg["JOINT_VEL_LIMIT"]
+        )
         self.q = np.zeros(4)  # Joint angles
         self.q_desired = np.zeros(4)
         self.qdot = np.zeros(4)  # Joint velocities
@@ -405,9 +407,18 @@ class DemoCollector(object):
             elapsed_t = t - t_0
             total_t = t_f - t_0
 
-            x_t = (x_0 + x_dot_0 * elapsed_t
-                   + (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2
-                   + (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3)
+            x_t = (
+                x_0
+                + x_dot_0 * elapsed_t
+                + (
+                    3 * total_x / total_t ** 2
+                    - 2 * x_dot_0 / total_t
+                    - x_dot_f / total_t
+                )
+                * elapsed_t ** 2
+                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2)
+                * elapsed_t ** 3
+            )
         return x_t
 
 
