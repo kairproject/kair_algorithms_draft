@@ -66,6 +66,11 @@ class DemoCollector(object):
          0  0  1  z
          0  0  0  1]
 
+        [[ 1.      0.      0.      0.286 ]
+         [ 0.      1.      0.      0.    ]
+         [ 0.      0.      1.      0.2045]
+         [ 0.      0.      0.      1.    ]]
+
         [Homogeneous Transformation Matrices]
           - material: https://www.youtube.com/watch?v=vlb3P7arbkU
         [Forward Kinematics]
@@ -81,6 +86,7 @@ class DemoCollector(object):
         self.T_target = np.array(self.robot.forward(self.q))
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
+        print(T_target)
 
         # TODO: extract num_tar_demo to config
         self.num_tar_demo = 3
