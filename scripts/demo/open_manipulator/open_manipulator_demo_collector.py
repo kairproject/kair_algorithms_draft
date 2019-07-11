@@ -45,8 +45,8 @@ class DemoCollector(object):
 
     def init_shared_variables(self):
         """Initialize shared variables.
-        
-        q, qdot, effort: 4 size array. 
+
+        q, qdot, effort: 4 size array.
         Receive from joint state callback.
 
         q: [joint1_position, joint2_position, joint3_position, joint4_position]
