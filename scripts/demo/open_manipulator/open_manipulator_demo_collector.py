@@ -60,12 +60,13 @@ class DemoCollector(object):
          0 1]
           - R: Rotation matrix
           - p: position
-        ex)
+        
         [s -c  0  x
          c  s  0  y
          0  0  1  z
          0  0  0  1]
 
+        ex)
         [[ 1.      0.      0.      0.286 ]
          [ 0.      1.      0.      0.    ]
          [ 0.      0.      1.      0.2045]
