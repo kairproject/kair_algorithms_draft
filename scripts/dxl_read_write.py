@@ -27,6 +27,7 @@ from utils import deg2rad, rad2deg, rpm2rad
 
 class DynamixelPositionControl(object):
     """Dynamixel read & write class."""
+
     def __init__(self, cfg):
         # Dynamixel Setting
         rospy.loginfo("Dynamixel Position Controller Created")

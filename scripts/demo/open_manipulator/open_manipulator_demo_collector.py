@@ -21,21 +21,23 @@ from urdf_parser_py.urdf import URDF
 class DemoCollector(object):
     """Demo collector class which controls openmanipulator based on jacobain method."""
 
-    def __init__(self):
+    def __init__(self, cfg):
         rospy.loginfo("Start Demo Collector")
         # TODO: Receive True or False with parser to check real or simulation.
-        self.use_platform = rospy.get_param("~use_platform", False)
+        self.cfg = cfg
+        self.use_platform = rospy.get_param("~use_platform", self.cfg["USE_PLATFORM"])
         self.print_start_message()
 
         self.robot_urdf = URDF.from_parameter_server()
         self.robot = KDLKinematics(self.robot_urdf, "world", "end_effector_link")
-        self.save_path = "../DemoCollection.json"
 
         self.init_shared_variables()
         self.init_observation()
 
         self.init_subscriber()
         self.init_publisher()
+
+        self.save_path = self.cfg["SAVE_PATH"]
 
     def print_start_message(self):
         if self.use_platform is False:
@@ -72,8 +74,10 @@ class DemoCollector(object):
           - material: https://www.youtube.com/watch?v=hE_Duih_7JE&list=PLggLP4f-rq00efLcgMcG1m4k5CKlgRcGh
         """
         self.mutex = threading.Lock()
-        self.damping = rospy.get_param("~damping", 0.01)
-        self.joint_vel_limit = rospy.get_param("~joint_vel_limit", 4)
+        self.damping = rospy.get_param("~damping", self.cfg["DAMPING"])
+        self.joint_vel_limit = rospy.get_param(
+            "~joint_vel_limit", self.cfg["JOINT_VEL_LIMIT"]
+        )
         self.q = np.zeros(4)  # Joint angles
         self.q_desired = np.zeros(4)
         self.qdot = np.zeros(4)  # Joint velocities
@@ -82,10 +86,7 @@ class DemoCollector(object):
         self.T_goal = np.array(self.robot.forward(self.q))
         self.T_cur = np.array(self.robot.forward(self.q))
 
-        # TODO: extract num_tar_demo to config
-        self.num_tar_demo = 3
-        self.num_cur_demo = 0
-
+        self.num_target_demo = self.cfg["NUM_TARGET_DEMO"]
         self.control_start_time = self.get_rostime()
 
     def init_observation(self):
@@ -144,13 +145,13 @@ class DemoCollector(object):
         collection.
         """
         # TODO: extract 100 to config
-        self.hz = 100
+        self.hz = self.cfg["HZ"]
         self.r = rospy.Rate(self.hz)
         self.start_log()
         self.q_init = list(self.q)
         self.done_move_to_target = False
 
-        for i in range(self.num_tar_demo):
+        for i in range(self.num_target_demo):
             print("Episode: ", i)
             rospy.loginfo("Moving to Initial Position")
             # go to init pose
@@ -238,6 +239,9 @@ class DemoCollector(object):
         [Resolved Rate Motion Control]
           - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
+        [Resolved Rate Motion Control]
+          - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
+
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
@@ -249,7 +253,6 @@ class DemoCollector(object):
         5) Get q_new by inverse term.
         6) Scaling joint velocities.
         7) Set joint states.
-        8) Save file.
         """
         t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
         # TODO: why mutex needed?
@@ -396,17 +399,26 @@ class DemoCollector(object):
         x_dot_f: velocity when x_f
         """
         if t < t_0:
-            x_t = x_0  # theta(0)
+            x_t = x_0
         elif t > t_f:
-            x_t = x_f  # theta(t_f)
+            x_t = x_f
         else:
             total_x = x_f - x_0
-            elapsed_t = t - t_0  # t
-            total_t = t_f - t_0  # t_f
+            elapsed_t = t - t_0
+            total_t = t_f - t_0
 
-            x_t = (x_0 + x_dot_0 * elapsed_t
-                   + (3 * total_x / total_t**2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t**2
-                   + (-2 * total_x / total_t**3 + (x_dot_0 + x_dot_f) / total_t**2) * elapsed_t**3)
+            x_t = (
+                x_0
+                + x_dot_0 * elapsed_t
+                + (
+                    3 * total_x / total_t ** 2
+                    - 2 * x_dot_0 / total_t
+                    - x_dot_f / total_t
+                )
+                * elapsed_t ** 2
+                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2)
+                * elapsed_t ** 3
+            )
         return x_t
 
 

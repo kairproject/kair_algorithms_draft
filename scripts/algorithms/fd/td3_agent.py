@@ -180,7 +180,7 @@ class Agent(TD3Agent):
     def pretrain(self):
         """Pretraining steps."""
         pretrain_loss = list()
-        print ("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
+        print("[INFO] Pre-Train %d steps." % self.hyper_params["PRETRAIN_STEP"])
         for i_step in range(1, self.hyper_params["PRETRAIN_STEP"] + 1):
             loss = self.update_model()
             pretrain_loss.append(loss)  # for logging
