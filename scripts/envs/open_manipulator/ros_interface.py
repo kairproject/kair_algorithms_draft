@@ -388,8 +388,6 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         self.default_settings = {}
         for link in self.link_names:
             default = self.get_link_properties(GetLinkPropertiesRequest(link))
-            print(type(default))
-            print(default.items())
             self.default_settings[link] = default
 
     def reset_gazebo_world(self, block_pose=None):
@@ -403,6 +401,9 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         time.sleep(0.5)
 
         self.set_target_block(block_pose)
+        self.mass_randomization()
+        for link in self.link_names:
+            print(self.get_link_properties(GetLinkPropertiesRequest(link)))
 
     def set_target_block(self, block_pose=None):
         """Set target block Gazebo model"""
@@ -485,8 +486,13 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         for link in self.link_names:
             request = SetLinkPropertiesRequest()
             default = self.default_settings[link]
-            for k, v in default.items():
-                pass
+            # copy values
+            for slot in request.__slots__:
+                value = getattr(default, slot)
+                setattr(request, slot, value)
+            # randomize mass
+            request.mass *= np.random.uniform(0.9, 1.1)
+            self.set_link_properties(request)
 
 
 class OpenManipulatorRosRealInterface(OpenManipulatorRosBaseInterface):
