@@ -389,6 +389,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         for link in self.link_names:
             default = self.get_link_properties(GetLinkPropertiesRequest(link))
             print(type(default))
+            print(default.items())
             self.default_settings[link] = default
 
     def reset_gazebo_world(self, block_pose=None):
