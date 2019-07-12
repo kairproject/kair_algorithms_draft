@@ -10,6 +10,7 @@ import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel  # noqa
+from gazebo_msgs.srv import GetLinkProperties, SetLinkProperties, SetJointPropertiesRequest
 from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from pykdl_utils.kdl_kinematics import KDLKinematics
@@ -379,6 +380,10 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
     def __init__(self, cfg):
         rospy.init_node("OpenManipulatorRosGazeboInterface")
         super(OpenManipulatorRosGazeboInterface, self).__init__(cfg)
+        self.get_link_properties = rospy.ServiceProxy('/gazebo/get_link_properties', GetLinkProperties)
+        self.set_link_properties = rospy.ServiceProxy('/gazebo/set_link_properties', SetLinkProperties)
+
+        print(self.robot.joints)
 
     def reset_gazebo_world(self, block_pose=None):
         """Initialize randomly the state of robot agent and surrounding envs (including target obj.)."""
@@ -468,6 +473,9 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         # FK state of robot
         end_effector_pose = np.array(self._gripper_position)
         return np.linalg.norm(end_effector_pose - self.block_pose)
+    #
+    # def mass_randomization(self):
+    #
 
 
 class OpenManipulatorRosRealInterface(OpenManipulatorRosBaseInterface):
