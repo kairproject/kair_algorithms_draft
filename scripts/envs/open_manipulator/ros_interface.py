@@ -10,7 +10,7 @@ import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel  # noqa
-from gazebo_msgs.srv import GetLinkProperties, SetLinkProperties
+from gazebo_msgs.srv import GetLinkProperties, SetLinkProperties, GetLinkPropertiesResponse
 from gazebo_msgs.srv import GetLinkPropertiesRequest, SetLinkPropertiesRequest
 from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
@@ -20,6 +20,9 @@ from std_msgs.msg import Float64
 from urdf_parser_py.urdf import URDF  # noqa
 
 import rospkg  # noqa
+
+
+SLOTS = ['com','gravity_mode','mass','ixx','ixy','ixz','iyy','iyz','izz']
 
 
 class OpenManipulatorRosBaseInterface(object):
@@ -486,6 +489,8 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         for link in self.link_names:
             request = SetLinkPropertiesRequest()
             default = self.default_settings[link]
+            # set link_name
+            request.link_name = link
             # copy values
             for slot in request.__slots__:
                 value = getattr(default, slot)
