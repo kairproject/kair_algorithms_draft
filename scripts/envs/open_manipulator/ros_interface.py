@@ -492,7 +492,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
             # set link_name
             request.link_name = link
             # copy values
-            for slot in request.__slots__:
+            for slot in SLOTS:
                 value = getattr(default, slot)
                 setattr(request, slot, value)
             # randomize mass
