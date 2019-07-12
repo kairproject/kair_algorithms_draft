@@ -385,7 +385,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         self.set_link_properties = rospy.ServiceProxy('/gazebo/set_link_properties', SetLinkProperties)
 
         print([j.name for j in self.robot.links])
-        print(self.get_link_properties(GetLinkPropertiesRequest('joint1')))
+        print(self.get_link_properties(GetLinkPropertiesRequest('link1')))
 
     def reset_gazebo_world(self, block_pose=None):
         """Initialize randomly the state of robot agent and surrounding envs (including target obj.)."""
