@@ -171,7 +171,6 @@ class DemoCollector(object):
                 self.r.sleep()
 
             self.set_target()
-            # TODO: replace is_set_new_target to done(move_to_target)
             self.T_init = np.array(self.robot.forward(self.q))
             # go to target
             self.control_start_time = self.get_rostime()
@@ -260,8 +259,7 @@ class DemoCollector(object):
         6) Scaling joint velocities.
         7) Set joint states.
         """
-        t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-        # TODO: why mutex needed?
+        t_now = self.get_rostime()
         with self.mutex:
             q_now = self.q
 
