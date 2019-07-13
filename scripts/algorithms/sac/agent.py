@@ -73,7 +73,6 @@ class Agent(AbstractAgent):
         self.episode_step = 0
         self.i_episode = 0
         self.her = her
-        print (self.her)
 
         # automatic entropy tuning
         if self.hyper_params["AUTO_ENTROPY_TUNING"]:
@@ -344,6 +343,7 @@ class Agent(AbstractAgent):
         if self.args.log:
             wandb.init()
             wandb.config.update(self.hyper_params)
+            wandb.config.update(vars(self.args))
             wandb.watch([self.actor, self.vf, self.qf_1, self.qf_2], log="parameters")
 
         for self.i_episode in range(1, self.args.episode_num + 1):
