@@ -408,14 +408,8 @@ class DemoCollector(object):
             x_t = (
                 x_0
                 + x_dot_0 * elapsed_t
-                + (
-                    3 * total_x / total_t ** 2
-                    - 2 * x_dot_0 / total_t
-                    - x_dot_f / total_t
-                )
-                * elapsed_t ** 2
-                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2)
-                * elapsed_t ** 3
+                + (3 * total_x / total_t ** 2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t ** 2
+                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2) * elapsed_t ** 3
             )
         return x_t
 
