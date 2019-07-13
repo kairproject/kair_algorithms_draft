@@ -248,9 +248,6 @@ class DemoCollector(object):
         [Resolved Rate Motion Control]
           - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
-        [Resolved Rate Motion Control]
-          - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
-
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
