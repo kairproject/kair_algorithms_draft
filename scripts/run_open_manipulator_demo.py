@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 # -*- coding: utf-8 -*-
 """Collect demo data with jacobian based control method.
 

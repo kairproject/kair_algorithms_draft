@@ -24,6 +24,7 @@ class DemoCollector(object):
     """Demo collector class which controls openmanipulator based on jacobain method."""
 
     def __init__(self, cfg):
+        rospy.init_node("demo_collector")
         rospy.loginfo("Start Demo Collector")
         # TODO: Receive True or False with parser to check real or simulation.
         self.cfg = cfg
