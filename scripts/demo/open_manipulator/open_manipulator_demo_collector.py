@@ -10,7 +10,9 @@ import threading
 import time
 from collections import defaultdict
 from math import pi, pow
+
 import numpy as np
+
 import rospy
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
@@ -123,6 +125,13 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def publish_pos_commands(self, q_desired):
+        self.j1_pos_command_pub.publish(q_desired[0])
+        self.j2_pos_command_pub.publish(q_desired[1])
+        self.j3_pos_command_pub.publish(q_desired[2])
+        self.j4_pos_command_pub.publish(q_desired[3])
+        self.joint_pos_command_to_dxl_pub.publish(data=q_desired)
+
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member."""
         for i in range(4):
@@ -144,7 +153,6 @@ class DemoCollector(object):
         6) If number of target demo is bigger than number of current demo, finish demo
         collection.
         """
-        # TODO: extract 100 to config
         self.hz = self.cfg["HZ"]
         self.r = rospy.Rate(self.hz)
         self.start_log()
@@ -312,12 +320,7 @@ class DemoCollector(object):
         dt = 1.0 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
-
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
+        self.publish_pos_commands(self.q_desired)
 
         obs = np.concatenate(
             (
@@ -358,12 +361,7 @@ class DemoCollector(object):
                 0.0,
             )
         self.q_desired = self.joint_limit_check(self.q_desired)
-
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
+        self.publish_pos_commands(self.q_desired)
 
         def _is_done_init():
             if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
