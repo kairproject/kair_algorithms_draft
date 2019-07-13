@@ -10,8 +10,9 @@
 import argparse
 import importlib
 
-import algorithms.common.helper_functions as common_utils
 from config.environment.open_manipulator import config as env_cfg
+
+import algorithms.common.helper_functions as common_utils
 from envs.open_manipulator.open_manipulator_reacher_env import OpenManipulatorReacherEnv
 
 # configurations

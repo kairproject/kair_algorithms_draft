@@ -6,6 +6,8 @@ from math import cos, sin
 
 import gym
 import numpy as np
+
+import rospkg  # noqa
 import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
@@ -16,8 +18,6 @@ from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 from urdf_parser_py.urdf import URDF  # noqa
-
-import rospkg  # noqa
 
 
 class OpenManipulatorRosBaseInterface(object):
