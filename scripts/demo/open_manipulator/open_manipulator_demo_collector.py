@@ -314,25 +314,24 @@ class DemoCollector(object):
 
         self.qdot = _limit_q_dot(qdot_new)
 
+        def _get_observation():
+            return np.concatenate(
+                [
+                    self._gripper_pos,
+                    self._gripper_orientation,
+                    self.q,
+                    self.qdot,
+                    self.effort,
+                ]
+            )
+
+        state = _get_observation()
+
         dt = 1.0 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
         self.publish_pos_commands(self.q_desired)
-
-        obs = np.concatenate(
-            (
-                self._gripper_pos,
-                self._gripper_orientation,
-                self.q,
-                self.qdot,
-                self.effort,
-            )
-        )
-
-        # append data
-        self.data[rollout_num]["observation"].append(obs.tolist())
-        self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
-        self.data[rollout_num]["target"].append(self.T_target[:3, 3].tolist())
+        next_state = _get_observation()
 
         def _is_done_move_to_target():
             if np.mean(np.abs(self.T_target[:3, 3] - self.T_cur[:3, 3])) < 0.001:
@@ -343,6 +342,14 @@ class DemoCollector(object):
                 return False
 
         self.done_move_to_target = _is_done_move_to_target()
+
+        # append data
+        self.data[rollout_num]["state"].append(state.tolist())
+        self.data[rollout_num]["action"].append(self.q_desired.tolist())
+        self.data[rollout_num]["next_state"].append(next_state.tolist())
+        self.data[rollout_num]["curr_xyz"].append(self.T_cur[:3, 3].tolist())
+        self.data[rollout_num]["target_xyz"].append(self.T_target[:3, 3].tolist())
+        self.data[rollout_num]["done"].append(self.done_move_to_target)
 
     def move_to_init(self):
         """Move robot to initial pose."""
