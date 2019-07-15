@@ -4,7 +4,7 @@ config = {
     "JOINT_VEL_LIMIT": 4,
     "NUM_TARGET_DEMO": 10,
     "HZ": 100,
-    "SAVE_PATH": "../DemoCollection.json",
+    "SAVE_PATH": "../demo_collection.json",
 }
 
 

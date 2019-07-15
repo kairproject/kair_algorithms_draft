@@ -158,7 +158,6 @@ class DemoCollector(object):
         self.r = rospy.Rate(self.hz)
         self.start_log()
         self.q_init = list(self.q)
-        self.done_move_to_target = False
 
         for i in range(self.num_target_demo):
             print("Episode: ", i)
@@ -172,7 +171,9 @@ class DemoCollector(object):
 
             self.set_target()
             self.T_init = np.array(self.robot.forward(self.q))
+
             # go to target
+            self.done_move_to_target = False
             self.control_start_time = self.get_rostime()
             while not self.done_move_to_target:
                 self.move_to_target(i)  # run 3
@@ -408,17 +409,6 @@ class DemoCollector(object):
                 + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2) * elapsed_t ** 3
             )
         return x_t
-
-
-def main():
-    rospy.init_node("demo_collector")
-    try:
-        demo_collector = DemoCollector()
-        demo_collector.run()
-    except rospy.ROSInterruptException:
-        pass
-
-    rospy.spin()
 
 
 if __name__ == "__main__":
