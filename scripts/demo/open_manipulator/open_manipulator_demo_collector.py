@@ -409,7 +409,3 @@ class DemoCollector(object):
                 + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2) * elapsed_t ** 3
             )
         return x_t
-
-
-if __name__ == "__main__":
-    main()
