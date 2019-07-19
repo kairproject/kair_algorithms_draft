@@ -35,7 +35,7 @@
   </include>
 
   <!-- Run demo collector node -->
-  <node name="open_manipulator_demo_collector" pkg="kair_algorithms" type="open_manipulator_demo_collector.py" respawn="false" output="screen">
+  <node name="open_manipulator_demo_collector" pkg="kair_algorithms" type="run_open_manipulator_demo.py" respawn="false" output="screen">
       <param name="use_platform" value="$(arg use_platform)" />
   </node>
 

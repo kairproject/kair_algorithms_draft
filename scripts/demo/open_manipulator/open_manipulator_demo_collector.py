@@ -10,7 +10,9 @@ import threading
 import time
 from collections import defaultdict
 from math import pi, pow
+
 import numpy as np
+
 import rospy
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
@@ -22,6 +24,7 @@ class DemoCollector(object):
     """Demo collector class which controls openmanipulator based on jacobain method."""
 
     def __init__(self, cfg):
+        rospy.init_node("demo_collector")
         rospy.loginfo("Start Demo Collector")
         # TODO: Receive True or False with parser to check real or simulation.
         self.cfg = cfg
@@ -123,6 +126,13 @@ class DemoCollector(object):
             "/open_manipulator/joint_position/command", Float64MultiArray, queue_size=3
         )
 
+    def publish_pos_commands(self, q_desired):
+        self.j1_pos_command_pub.publish(q_desired[0])
+        self.j2_pos_command_pub.publish(q_desired[1])
+        self.j3_pos_command_pub.publish(q_desired[2])
+        self.j4_pos_command_pub.publish(q_desired[3])
+        self.joint_pos_command_to_dxl_pub.publish(data=q_desired)
+
     def joint_states_cb(self, joint_states):
         """ Save joint states published in ROS to class member."""
         for i in range(4):
@@ -144,12 +154,10 @@ class DemoCollector(object):
         6) If number of target demo is bigger than number of current demo, finish demo
         collection.
         """
-        # TODO: extract 100 to config
         self.hz = self.cfg["HZ"]
         self.r = rospy.Rate(self.hz)
         self.start_log()
         self.q_init = list(self.q)
-        self.done_move_to_target = False
 
         for i in range(self.num_target_demo):
             print("Episode: ", i)
@@ -162,9 +170,10 @@ class DemoCollector(object):
                 self.r.sleep()
 
             self.set_target()
-            # TODO: replace is_set_new_target to done(move_to_target)
             self.T_init = np.array(self.robot.forward(self.q))
+
             # go to target
+            self.done_move_to_target = False
             self.control_start_time = self.get_rostime()
             while not self.done_move_to_target:
                 self.move_to_target(i)  # run 3
@@ -239,9 +248,6 @@ class DemoCollector(object):
         [Resolved Rate Motion Control]
           - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
 
-        [Resolved Rate Motion Control]
-          - material: https://www.youtube.com/embed/rkHs7K0ad14?rel=0&showinfo=0
-
         q_now: Current joint angles.
         T_cur: Current transformation matrix.
 
@@ -254,8 +260,7 @@ class DemoCollector(object):
         6) Scaling joint velocities.
         7) Set joint states.
         """
-        t_now = rospy.get_rostime().secs + rospy.get_rostime().nsecs * 10 ** -9
-        # TODO: why mutex needed?
+        t_now = self.get_rostime()
         with self.mutex:
             q_now = self.q
 
@@ -309,30 +314,24 @@ class DemoCollector(object):
 
         self.qdot = _limit_q_dot(qdot_new)
 
+        def _get_observation():
+            return np.concatenate(
+                [
+                    self._gripper_pos,
+                    self._gripper_orientation,
+                    self.q,
+                    self.qdot,
+                    self.effort,
+                ]
+            )
+
+        state = _get_observation()
+
         dt = 1.0 / self.hz
         self.q_desired = self.q_desired + qdot_new * dt
         self.q_desired = self.joint_limit_check(self.q_desired)
-
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
-
-        obs = np.concatenate(
-            (
-                self._gripper_pos,
-                self._gripper_orientation,
-                self.q,
-                self.qdot,
-                self.effort,
-            )
-        )
-
-        # append data
-        self.data[rollout_num]["observation"].append(obs.tolist())
-        self.data[rollout_num]["desired q"].append(self.q_desired.tolist())
-        self.data[rollout_num]["target"].append(self.T_target[:3, 3].tolist())
+        self.publish_pos_commands(self.q_desired)
+        next_state = _get_observation()
 
         def _is_done_move_to_target():
             if np.mean(np.abs(self.T_target[:3, 3] - self.T_cur[:3, 3])) < 0.001:
@@ -343,6 +342,14 @@ class DemoCollector(object):
                 return False
 
         self.done_move_to_target = _is_done_move_to_target()
+
+        # append data
+        self.data[rollout_num]["state"].append(state.tolist())
+        self.data[rollout_num]["action"].append(self.q_desired.tolist())
+        self.data[rollout_num]["next_state"].append(next_state.tolist())
+        self.data[rollout_num]["curr_xyz"].append(self.T_cur[:3, 3].tolist())
+        self.data[rollout_num]["target_xyz"].append(self.T_target[:3, 3].tolist())
+        self.data[rollout_num]["done"].append(self.done_move_to_target)
 
     def move_to_init(self):
         """Move robot to initial pose."""
@@ -358,12 +365,7 @@ class DemoCollector(object):
                 0.0,
             )
         self.q_desired = self.joint_limit_check(self.q_desired)
-
-        self.j1_pos_command_pub.publish(self.q_desired[0])
-        self.j2_pos_command_pub.publish(self.q_desired[1])
-        self.j3_pos_command_pub.publish(self.q_desired[2])
-        self.j4_pos_command_pub.publish(self.q_desired[3])
-        self.joint_pos_command_to_dxl_pub.publish(data=self.q_desired)
+        self.publish_pos_commands(self.q_desired)
 
         def _is_done_init():
             if np.mean(np.abs(np.zeros(4) - self.q)) < 0.05:
@@ -410,28 +412,7 @@ class DemoCollector(object):
             x_t = (
                 x_0
                 + x_dot_0 * elapsed_t
-                + (
-                    3 * total_x / total_t ** 2
-                    - 2 * x_dot_0 / total_t
-                    - x_dot_f / total_t
-                )
-                * elapsed_t ** 2
-                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2)
-                * elapsed_t ** 3
+                + (3 * total_x / total_t ** 2 - 2 * x_dot_0 / total_t - x_dot_f / total_t) * elapsed_t ** 2
+                + (-2 * total_x / total_t ** 3 + (x_dot_0 + x_dot_f) / total_t ** 2) * elapsed_t ** 3
             )
         return x_t
-
-
-def main():
-    rospy.init_node("demo_collector")
-    try:
-        demo_collector = DemoCollector()
-        demo_collector.run()
-    except rospy.ROSInterruptException:
-        pass
-
-    rospy.spin()
-
-
-if __name__ == "__main__":
-    main()
