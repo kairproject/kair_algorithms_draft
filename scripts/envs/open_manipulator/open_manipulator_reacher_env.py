@@ -1,9 +1,9 @@
 #! usr/bin/env python
 
-import numpy as np
-
 import gym
+import numpy as np
 from gym.utils import seeding
+
 from ros_interface import (
     OpenManipulatorRosGazeboInterface,
     OpenManipulatorRosRealInterface,
@@ -78,15 +78,14 @@ class OpenManipulatorReacherEnv(gym.Env):
             # TODO: Add termination condition
             # if self.ros_interface.check_for_termination():
             #     self.done = True
-            if self.ros_interface.check_for_success():
+            if (
+                self.ros_interface.check_for_success()
+                or self.episode_steps == self._max_episode_steps
+            ):
                 self.done = True
                 self.episode_steps = 0
 
         obs = self.ros_interface.get_observation()
-
-        if self.episode_steps == self._max_episode_steps:
-            self.done = False
-            self.episode_steps = 0
 
         return obs, self.reward_rescale_ratio * self.reward, self.done, None
 
