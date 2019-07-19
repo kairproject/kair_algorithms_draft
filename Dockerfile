@@ -8,7 +8,7 @@ RUN apt-get update && apt-get -y upgrade && apt-get -y install git wget vim
 
 # install ROS
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
-RUN sudo -E apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+RUN apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y ros-${ROS_DISTRO}-desktop-full ros-${ROS_DISTRO}-rqt-*
 RUN rosdep init && rosdep update
@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y python3-opengl zlib1g-dev libjpeg-dev p
 	cmake swig libboost-all-dev libsdl2-dev libosmesa6-dev xvfb ffmpeg
 
 # install repository requirements
-RUN apt-get remove -y python-psutil
+RUN dpkg -P --force-all python-psutil python-enum34 python-yaml
 
 RUN cd src/kair_algorithms_draft/scripts && python2.7 -m pip install -r requirements.txt
 RUN python2.7 -m pip install gym['Box2d']
