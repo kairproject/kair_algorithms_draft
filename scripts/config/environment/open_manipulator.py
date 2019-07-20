@@ -2,7 +2,6 @@ from math import pi
 
 from geometry_msgs.msg import Quaternion
 
-
 config = {
     "ENV_NAME": "OpenManipulatorReacher",
     "MAX_EPISODE_STEPS": 100,
