@@ -1,9 +1,9 @@
 #! usr/bin/env python
 
-import numpy as np
-
 import gym
+import numpy as np
 from gym.utils import seeding
+
 from ros_interface import (
     OpenManipulatorRosGazeboInterface,
     OpenManipulatorRosRealInterface,
