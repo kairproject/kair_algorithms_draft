@@ -6,7 +6,7 @@
   <xacro:include filename="$(find open_manipulator_description)/urdf/open_manipulator.gazebo.xacro" />
   <!-- Import Rviz colors -->
   <xacro:include filename="$(find open_manipulator_description)/urdf/materials.xacro" />
-  <xacro:include filename="$(find open_manipulator_description)/urdf/camera.urdf.xacro"/>
+  <xacro:include filename="$(find kair_algorithms)/urdf/camera.urdf.xacro"/>
 
 
   <!-- Transmission macro -->
