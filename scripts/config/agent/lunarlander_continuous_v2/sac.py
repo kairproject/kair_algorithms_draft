@@ -8,6 +8,7 @@
 import numpy as np
 import torch
 import torch.optim as optim
+from config.agent.lunarlander_continuous_v2.utils import LunarLanderContinuousHER
 
 from algorithms.common.networks.mlp import MLP, FlattenMLP, TanhGaussianDistParams
 from algorithms.sac.agent import Agent
@@ -38,6 +39,10 @@ hyper_params = {
         "VF_HIDDEN_SIZES": [256, 256],
         "QF_HIDDEN_SIZES": [256, 256],
     },
+    # HER
+    "USE_HER": True,
+    "SUCCESS_SCORE": 250.0,
+    "DESIRED_STATES_FROM_DEMO": True,
 }
 
 
@@ -51,6 +56,9 @@ def get(env, args):
     """
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
+
+    if hyper_params["USE_HER"]:
+        state_dim *= 2
 
     hidden_sizes_actor = hyper_params["NETWORK"]["ACTOR_HIDDEN_SIZES"]
     hidden_sizes_vf = hyper_params["NETWORK"]["VF_HIDDEN_SIZES"]
@@ -107,5 +115,8 @@ def get(env, args):
     models = (actor, vf, vf_target, qf_1, qf_2)
     optims = (actor_optim, vf_optim, qf_1_optim, qf_2_optim)
 
+    # HER
+    her = LunarLanderContinuousHER() if hyper_params["USE_HER"] else None
+
     # create an agent
-    return Agent(env, args, hyper_params, models, optims, target_entropy)
+    return Agent(env, args, hyper_params, models, optims, target_entropy, her)

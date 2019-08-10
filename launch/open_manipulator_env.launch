@@ -8,9 +8,9 @@
   <arg name="debug" default="false"/>
 
   <!-- robot URDF parse args -->
-  <arg name="om_urdf" value="robot_description"/>
+  <arg name="open_manipulator_urdf" value="robot_description"/>
   <arg name="urdf_param" default="/robot_description"/>
-  <param name="$(arg om_urdf)" textfile="$(find kair_algorithms)/urdf/open_manipulator.urdf"/>
+  <param name="$(arg open_manipulator_urdf)" textfile="$(find kair_algorithms)/urdf/open_manipulator.urdf"/>
   <arg name="load_robot_description" default="false"/>
 
   <!-- gazebo related -->
@@ -25,7 +25,7 @@
   </include>
 
   <!--KDL chain related args-->
-  <param if="$(arg load_robot_description)" name="$(arg urdf_param)" command="$(find xacro)/xacro --inorder $(find kair_algorithms)/urdf/om.urdf"/>
+  <param if="$(arg load_robot_description)" name="$(arg urdf_param)" command="$(find xacro)/xacro --inorder $(find kair_algorithms)/urdf/open_manipulator.urdf"/>
 
   <!-- Load the URDF into the ROS Parameter Server -->
     <param name="robot_description"
