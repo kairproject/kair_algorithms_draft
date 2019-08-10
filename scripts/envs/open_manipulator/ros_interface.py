@@ -114,7 +114,15 @@ class OpenManipulatorRosBaseInterface(object):
 
     def init_robot_pose(self):
         """Initialize robot gripper and joints position."""
-        rospy.ServiceProxy("/gazebo/reset_simulation", Empty)
+        rospy.wait_for_service("/gazebo/reset_simulation")
+        rospy.ServiceProxy("/gazebo/reset_simulation", Empty)()
+        for i in range(2000):
+            self.pub_gripper_position.publish(np.random.uniform(0.0, 0.0))
+            self.pub_joint1_position.publish(np.random.uniform(0.0, 0.0))
+            self.pub_joint2_position.publish(np.random.uniform(0.0, 0.0))
+            self.pub_joint3_position.publish(np.random.uniform(0.0, 0.0))
+            self.pub_joint4_position.publish(np.random.uniform(0.0, 0.0))
+        time.sleep(5)
 
     def init_fk_solver(self):
         self.robot = URDF.from_parameter_server()

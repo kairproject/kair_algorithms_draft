@@ -1,5 +1,6 @@
 #! usr/bin/env python
 
+import time
 import gym
 import numpy as np
 from gym.utils import seeding
