@@ -106,6 +106,7 @@ class OpenManipulatorReacherEnv(gym.Env):
         """
         self.ros_interface.reset_gazebo_world()
         obs = self.ros_interface.get_observation()
+        print("RESET:", obs)
 
         return obs
 

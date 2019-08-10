@@ -17,6 +17,7 @@ from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
+from std_srvs.srv import Empty
 from urdf_parser_py.urdf import URDF  # noqa
 
 
@@ -113,11 +114,7 @@ class OpenManipulatorRosBaseInterface(object):
 
     def init_robot_pose(self):
         """Initialize robot gripper and joints position."""
-        self.pub_gripper_position.publish(np.random.uniform(0.0, 0.0))
-        self.pub_joint1_position.publish(np.random.uniform(0.0, 0.0))
-        self.pub_joint2_position.publish(np.random.uniform(0.0, 0.0))
-        self.pub_joint3_position.publish(np.random.uniform(0.0, 0.0))
-        self.pub_joint4_position.publish(np.random.uniform(0.0, 0.0))
+        rospy.ServiceProxy("/gazebo/reset_simulation", Empty)
 
     def init_fk_solver(self):
         self.robot = URDF.from_parameter_server()
@@ -211,8 +208,8 @@ class OpenManipulatorRosBaseInterface(object):
 
     def get_observation(self):
         """Get robot observation."""
-        gripper_pos = np.array(self._gripper_position)
-        gripper_ori = np.array(self._gripper_orientation)
+#        gripper_pos = np.array(self._gripper_position)
+#        gripper_ori = np.array(self._gripper_orientation)
 
         # joint space
         robot_joint_angles = np.array(self.joint_positions)
@@ -221,11 +218,12 @@ class OpenManipulatorRosBaseInterface(object):
 
         obs = np.concatenate(
             (
-                gripper_pos,
-                gripper_ori,
+#                gripper_pos,
+#                gripper_ori,
                 robot_joint_angles,
                 robot_joint_velocities,
                 robot_joint_efforts,
+                self.block_pose,
             )
         )
         return obs
@@ -388,7 +386,6 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         # self.delete_target_block()
         self.init_robot_pose()
         self.success_count = 0
-        time.sleep(0.5)
 
         self.set_target_block(block_pose)
 
