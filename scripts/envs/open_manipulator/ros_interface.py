@@ -1,6 +1,5 @@
 # ! usr/bin/env python
 
-import time
 from abc import ABCMeta
 from math import cos, sin
 
@@ -122,7 +121,6 @@ class OpenManipulatorRosBaseInterface(object):
             self.pub_joint2_position.publish(np.random.uniform(0.0, 0.0))
             self.pub_joint3_position.publish(np.random.uniform(0.0, 0.0))
             self.pub_joint4_position.publish(np.random.uniform(0.0, 0.0))
-        time.sleep(5)
 
     def init_fk_solver(self):
         self.robot = URDF.from_parameter_server()
