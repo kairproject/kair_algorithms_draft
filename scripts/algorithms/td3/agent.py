@@ -177,7 +177,7 @@ class Agent(AbstractAgent):
     def load_params(self, path):
         """Load model and optimizer parameters."""
         if not os.path.exists(path):
-            print ("[ERROR] the input path does not exist. ->", path)
+            print("[ERROR] the input path does not exist. ->", path)
             return
 
         params = torch.load(path)
@@ -189,7 +189,7 @@ class Agent(AbstractAgent):
         self.critic2_target.load_state_dict(params["critic2_target_state_dict"])
         self.actor_optim.load_state_dict(params["actor_optim_state_dict"])
         self.critic_optim.load_state_dict(params["critic_optim_state_dict"])
-        print ("[INFO] loaded the model and optimizer from", path)
+        print("[INFO] loaded the model and optimizer from", path)
 
     def save_params(self, n_episode):
         """Save model and optimizer parameters."""
@@ -210,7 +210,7 @@ class Agent(AbstractAgent):
         """Write log about loss and score"""
         total_loss = loss.sum()
 
-        print (
+        print(
             "[INFO] total_steps: %d episode: %d total score: %d, total loss: %f\n"
             "actor_loss: %.3f critic1_loss: %.3f critic2_loss: %.3f\n"
             % (self.total_steps, i, score, total_loss, loss[0], loss[1], loss[2])

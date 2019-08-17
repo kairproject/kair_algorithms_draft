@@ -12,7 +12,6 @@ import rospy  # noqa
 import tf  # noqa
 import tf.transformations as tr  # noqa
 from gazebo_msgs.srv import DeleteModel, GetModelState, SpawnModel  # noqa
-from geometry_msgs.msg import Pose
 from open_manipulator_msgs.msg import KinematicsPose, OpenManipulatorState
 from pykdl_utils.kdl_kinematics import KDLKinematics
 from sensor_msgs.msg import JointState
@@ -266,7 +265,7 @@ class OpenManipulatorRosBaseInterface(object):
             )
         else:
             raise ValueError("Control mode %s is not known!" % control_mode)
-        print (lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
+        print(lower_bounds, upper_bounds, self.cfg["ACTION_DIM"])
         return gym.spaces.Box(low=lower_bounds, high=upper_bounds, dtype=np.float32)
 
     def get_observation_space(self):
@@ -305,7 +304,7 @@ class OpenManipulatorRosBaseInterface(object):
         if dist < self.distance_threshold:
             self.success_count += 1
             if self.success_count == self.cfg["SUCCESS_COUNT"]:
-                print ("Current episode succeeded")
+                print("Current episode succeeded")
                 return True
             else:
                 return False
@@ -361,7 +360,7 @@ class OpenManipulatorRosBaseInterface(object):
             rospy.logwarn("OUT OF BOUNDARY : joint_1_limit exceeds")
 
         if self.termination_count == term_count:
-            print ("Current episode terminated")
+            print("Current episode terminated")
             self.termination_count = 0
             return True
         else:
@@ -396,7 +395,7 @@ class OpenManipulatorRosGazeboInterface(OpenManipulatorRosBaseInterface):
         """Set target block Gazebo model"""
         # random generated blocks for train
         if block_pose is None:
-            polar_rad, polar_theta, z, overhead_orientation = (
+            polar_rad, polar_theta, z, _ = (
                 np.random.uniform(*self.cfg["POLAR_RADIAN_BOUNDARY"]),
                 np.random.uniform(*self.cfg["POLAR_THETA_BOUNDARY"]),
                 np.random.uniform(*self.cfg["Z_BOUNDARY"]),
