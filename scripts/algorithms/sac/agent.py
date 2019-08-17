@@ -8,6 +8,7 @@
 """
 
 import os
+import pickle
 
 import numpy as np
 import torch
@@ -44,10 +45,11 @@ class Agent(AbstractAgent):
         total_step (int): total step numbers
         episode_step (int): step number of the current episode
         i_episode (int): current episode number
+        her (HER): hinsight experience replay
 
     """
 
-    def __init__(self, env, args, hyper_params, models, optims, target_entropy):
+    def __init__(self, env, args, hyper_params, models, optims, target_entropy, her):
         """Initialization.
 
         Args:
@@ -57,6 +59,7 @@ class Agent(AbstractAgent):
             models (tuple): models including actor and critic
             optims (tuple): optimizers for actor and critic
             target_entropy (float): target entropy for the inequality constraint
+            her (HER): hinsight experience replay
 
         """
         AbstractAgent.__init__(self, env, args)
@@ -69,6 +72,7 @@ class Agent(AbstractAgent):
         self.total_step = 0
         self.episode_step = 0
         self.i_episode = 0
+        self.her = her
 
         # automatic entropy tuning
         if self.hyper_params["AUTO_ENTROPY_TUNING"]:
@@ -92,6 +96,50 @@ class Agent(AbstractAgent):
                 self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
             )
 
+        # HER
+        if self.hyper_params["USE_HER"]:
+            # load demo replay memory
+            with open(self.args.demo_path, "rb") as f:
+                demo = pickle.load(f)
+
+            if self.hyper_params["DESIRED_STATES_FROM_DEMO"]:
+                self.her.fetch_desired_states_from_demo(demo)
+
+            self.transitions_epi = list()
+            self.desired_state = np.zeros((1,))
+            demo = self.her.generate_demo_transitions(demo)
+
+        if not self.args.test:
+            # Replay buffers
+            self.memory = ReplayBuffer(
+                self.hyper_params["BUFFER_SIZE"], self.hyper_params["BATCH_SIZE"]
+            )
+
+    def _preprocess_state(self, state):
+        """Preprocess state so that actor selects an action."""
+        if self.hyper_params["USE_HER"]:
+            self.desired_state = self.her.get_desired_state()
+            state = np.concatenate((state, self.desired_state), axis=-1)
+        state = torch.FloatTensor(state).to(device)
+        return state
+
+    def _add_transition_to_memory(self, transition):
+        """Add 1 step and n step transitions to memory."""
+        if self.hyper_params["USE_HER"]:
+            self.transitions_epi.append(transition)
+            done = transition[-1] or self.episode_step == self.args.max_episode_steps
+            if done:
+                # insert generated transitions if the episode is done
+                transitions = self.her.generate_transitions(
+                    self.transitions_epi,
+                    self.desired_state,
+                    self.hyper_params["SUCCESS_SCORE"],
+                )
+                self.memory.extend(transitions)
+                self.transitions_epi = list()
+        else:
+            self.memory.add(*transition)
+
     def select_action(self, state):
         """Select an action from the input space."""
         self.curr_state = state
@@ -111,11 +159,6 @@ class Agent(AbstractAgent):
 
         return selected_action.detach().cpu().numpy()
 
-    def _preprocess_state(self, state):
-        """Preprocess state so that actor selects an action."""
-        state = torch.FloatTensor(state).to(device)
-        return state
-
     def step(self, action):
         """Take an action and return the response of the env."""
         self.total_step += 1
@@ -132,10 +175,6 @@ class Agent(AbstractAgent):
             self._add_transition_to_memory(transition)
 
         return next_state, reward, done
-
-    def _add_transition_to_memory(self, transition):
-        """Add 1 step and n step transitions to memory."""
-        self.memory.add(*transition)
 
     def update_model(self, experiences):
         """Train the model after each episode."""
@@ -304,6 +343,7 @@ class Agent(AbstractAgent):
         if self.args.log:
             wandb.init()
             wandb.config.update(self.hyper_params)
+            wandb.config.update(vars(self.args))
             wandb.watch([self.actor, self.vf, self.qf_1, self.qf_2], log="parameters")
 
         for self.i_episode in range(1, self.args.episode_num + 1):
