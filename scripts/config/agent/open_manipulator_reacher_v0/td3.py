@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Run module for TD3 on LunarLanderContinuous-v2.
+"""Run module for TD3 on OpenManipulator.
 
 - Author: whikwon
 - Contact: whikwon@gmail.com
