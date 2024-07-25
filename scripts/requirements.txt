@@ -1,7 +1,7 @@
 gym
 # gym['Box2D']
 numpy
-torch==0.4.1
+torch==2.2.0
 typing
 wandb
 matplotlib
